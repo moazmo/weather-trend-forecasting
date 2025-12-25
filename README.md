@@ -37,8 +37,3 @@ This project is a modular, production-ready system for analyzing weather trends,
 *   **Ensemble Forecasting**: Combines SARIMA (Seasonality), XGBoost (Non-linear patterns), and Prophet (Holidays/Trends) using validation-RMSE weighted averaging.
 *   **Anomaly Detection**: Multivariate Isolation Forest to detect outlier weather events.
 *   **Explainable AI**: SHAP integration to explain *why* the model predicts specific temperatures.
-
-## Outputs
-*   `notebooks/anomaly_{location}.html`: Interactive anomaly chart.
-*   `notebooks/global_temperature_map.html`: World map of current temperatures.
-*   `notebooks/shap_summary_{location}.png`: Feature importance plot.
