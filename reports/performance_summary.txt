@@ -1,0 +1,15 @@
+
+=== Weather Forecasting System Performance Report ===
+Target Location: London
+Model: XGBoost (Gradient Boosting)
+
+top-line Metrics:
+- Average Error (MAE): 0.08°C
+- Root Mean Sq Error:  0.12°C
+
+Reliability:
+- The model is accurate within ±2°C for 100.0% of predictions.
+
+Key Drivers:
+- Immediate past temperature (Lag 1) is the strongest predictor.
+- Daily cycle (Time of Day) is the secondary driver.

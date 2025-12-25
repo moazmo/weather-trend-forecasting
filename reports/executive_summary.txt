@@ -1,0 +1,11 @@
+
+        === Model Performance Summary: XGBoost ===
+        Cross-Validation Strategy: Time Series Split (Robust to Seasonality)
+        
+        Key Metrics (Average across 5 folds):
+        - Mean Absolute Error (MAE): 1.7657 °C
+        - Root Mean Squared Error (RMSE): 2.4457 °C
+        
+        Interpretation:
+        On average, the model's predictions are off by about 1.77 degrees Celsius.
+        
