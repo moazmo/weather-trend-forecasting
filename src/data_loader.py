@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
-from datetime import datetime
+import requests
+from datetime import datetime, timedelta
 
 class DataLoader:
     """
@@ -75,6 +76,51 @@ class DataLoader:
             print(f"Dropped {initial_len - final_len} rows due to extensive missing data gaps (>3 hours).")
             
         return df_clean
+
+    def fetch_realtime_history(self, hours_back=168):
+        """
+        Fetches the last N hours of temperature data from Open-Meteo API for London.
+        Used for real-time inference context.
+        """
+        # London coordinates (approx)
+        lat = 51.5074
+        lon = -0.1278
+        
+        # Calculate start/end dates
+        end_date = datetime.now()
+        start_date = end_date - timedelta(hours=hours_back + 24) # Buffer
+        
+        url = "https://archive-api.open-meteo.com/v1/archive"
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+            "hourly": "temperature_2m"
+        }
+        
+        try:
+            print(f"Fetching live data from Open-Meteo: {url}")
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Parse
+            hourly = data['hourly']
+            df = pd.DataFrame({
+                'last_updated': pd.to_datetime(hourly['time']),
+                'temperature_celsius': hourly['temperature_2m']
+            })
+            
+            # Set Index
+            df = df.set_index('last_updated').sort_index()
+            
+            # Filter to required window
+            return df.tail(hours_back)
+            
+        except Exception as e:
+            print(f"Error fetching live data: {e}")
+            return pd.DataFrame() # Return empty on failure
 
 if __name__ == "__main__":
     # Quick Test

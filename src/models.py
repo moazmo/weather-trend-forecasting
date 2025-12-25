@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 from sklearn.base import BaseEstimator, RegressorMixin
+import joblib
+import os
 
 class XGBoostForecaster(BaseEstimator, RegressorMixin):
     """
@@ -113,9 +115,16 @@ class XGBoostForecaster(BaseEstimator, RegressorMixin):
             
         return pd.DataFrame({'predicted_temperature': predictions}, index=timestamps)
 
-    def get_feature_importance(self):
-        """Returns feature importance DataFrame."""
         return pd.DataFrame({
             'Feature': self.features,
             'Importance': self.model.feature_importances_
         }).sort_values('Importance', ascending=False)
+
+    def save(self, filepath):
+        """Saves the entire estimator object to a file."""
+        joblib.dump(self, filepath)
+        
+    @classmethod
+    def load(cls, filepath):
+        """Loads the estimator object from a file."""
+        return joblib.load(filepath)

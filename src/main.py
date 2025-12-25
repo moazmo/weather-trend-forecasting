@@ -61,6 +61,11 @@ def main():
     final_model = XGBoostForecaster(n_estimators=1000, learning_rate=0.01)
     final_model.fit(X, y)
     
+    # Save Model for Production
+    model_path = 'models/forecast_model.pkl'
+    final_model.save(model_path)
+    print(f"Model saved to {model_path}")
+    
     # Recursive Forecast for next 24 Hours
     # taking the last available data point as input
     last_known_data = X.iloc[-1:] 
