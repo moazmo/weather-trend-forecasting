@@ -1,0 +1,49 @@
+{
+  "feature_columns": [
+    "country_encoded",
+    "latitude",
+    "longitude",
+    "month",
+    "day_of_month",
+    "day_of_week",
+    "day_of_year",
+    "quarter",
+    "is_weekend",
+    "month_sin",
+    "month_cos",
+    "day_sin",
+    "day_cos",
+    "day_of_year_sin",
+    "day_of_year_cos",
+    "temp_lag_1",
+    "temp_lag_2",
+    "temp_lag_3",
+    "temp_lag_7",
+    "temp_lag_14",
+    "temp_lag_30",
+    "temp_rolling_mean_7",
+    "temp_rolling_mean_14",
+    "temp_rolling_std_7"
+  ],
+  "target_column": "temperature_celsius",
+  "input_dim": 24,
+  "hidden_dims": [
+    359,
+    497,
+    345,
+    339
+  ],
+  "dropout": 0.22427999020982847,
+  "n_countries": 186,
+  "metrics": {
+    "mae": 1.560272715391996,
+    "rmse": 2.220598395023163,
+    "r2": 0.9379779780433922
+  },
+  "training": {
+    "n_epochs": 37,
+    "best_epoch": 22,
+    "train_samples": 81842,
+    "test_samples": 20810
+  }
+}

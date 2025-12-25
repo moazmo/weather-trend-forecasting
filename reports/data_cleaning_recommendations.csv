@@ -1,0 +1,20 @@
+action,from,to,affected_records,priority
+Rename country,Bélgica,Bulgaria,1,Medium
+Rename country,Estonie,Estonia,1,Medium
+Rename country,Fiji Islands,Finland,587,High
+Rename country,Inde,India,1,Medium
+Rename country,Jemen,Yemen,1,Medium
+Rename country,Kyrghyzstan,Kyrgyzstan,586,High
+Rename country,Letonia,Estonia,1,Medium
+Rename country,Macedonia,North Macedonia,583,High
+Rename country,Malásia,Malaysia,1,Medium
+Rename country,Marrocos,Morocco,1,Medium
+Rename country,Mexique,Mexico,1,Medium
+Rename country,Polônia,Poland,1,Medium
+Rename country,Saint-Vincent-et-les-Grenadines,Saint Vincent and the Grenadines,1,Medium
+Rename country,Saudi Arabien,Saudi Arabia,1,Medium
+Rename country,Seychelles Islands,Seychelles,586,High
+Rename country,Swaziland,Thailand,585,High
+Rename country,Südkorea,South Korea,1,Medium
+Rename country,Turkménistan,Turkmenistan,1,Medium
+Rename country,USA United States of America,United States of America,3,Medium
