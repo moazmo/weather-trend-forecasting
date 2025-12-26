@@ -37,7 +37,7 @@ jobs:
       - name: Build the book
         working-directory: book
         run: |
-          jupyter-book build . --verbose
+          jupyter-book build .
       
       - name: List build output
         run: |
