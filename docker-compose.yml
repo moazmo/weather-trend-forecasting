@@ -26,7 +26,7 @@ services:
   weather-api-v1:
     build:
       context: .
-      dockerfile: Dockerfile.v1
+      dockerfile: app/Dockerfile
     container_name: weather-forecasting-v1
     ports:
       - "8000:8000"
