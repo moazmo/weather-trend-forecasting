@@ -1,0 +1,45 @@
+# Book settings
+title: Weather Trend Forecasting
+author: Moaz Muhammad
+logo: images/logo.png
+
+# Force re-execution of notebooks on each build
+execute:
+  execute_notebooks: "off" # Don't execute, use existing outputs
+
+# Parse and render settings
+parse:
+  myst_enable_extensions:
+    - colon_fence
+    - deflist
+    - dollarmath
+    - html_image
+
+# HTML settings
+html:
+  favicon: ""
+  use_issues_button: true
+  use_repository_button: true
+  use_edit_page_button: true
+  home_page_in_navbar: false
+  extra_footer: |
+    <p><strong>PM Accelerator Mission</strong>: Empowering PMs with AI skills</p>
+
+# Repository settings
+repository:
+  url: https://github.com/moazmo/weather-trend-forecasting
+  path_to_book: book
+  branch: main
+
+# Launch button settings
+launch_buttons:
+  notebook_interface: "classic"
+  colab_url: "https://colab.research.google.com"
+
+# Sphinx settings
+sphinx:
+  extra_extensions:
+    - sphinx_togglebutton
+  config:
+    html_theme_options:
+      navigation_with_keys: false

@@ -1,0 +1,14 @@
+# Table of contents
+format: jb-book
+root: intro
+chapters:
+  - file: 01_project_overview
+    title: Project Overview
+  - file: 02_eda_analysis
+    title: EDA Analysis
+  - file: 03_model_evolution
+    title: Model Evolution
+  - file: 04_climate_spatial
+    title: Climate & Spatial Analysis
+  - file: 05_environmental_impact
+    title: Environmental Impact
