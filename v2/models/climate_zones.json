@@ -1,0 +1,46 @@
+{
+  "zone_mapping": {
+    "Tropical": 0,
+    "Subtropical": 1,
+    "Temperate": 2,
+    "Continental": 3,
+    "Polar": 4
+  },
+  "zone_temps": {
+    "mean": {
+      "Tropical": 25.5,
+      "Subtropical": 24.8,
+      "Temperate": 16.5,
+      "Continental": 10.3,
+      "Polar": NaN
+    },
+    "std": {
+      "Tropical": 3.7,
+      "Subtropical": 6.5,
+      "Temperate": 4.6,
+      "Continental": 1.9,
+      "Polar": NaN
+    },
+    "min": {
+      "Tropical": 10.1,
+      "Subtropical": 10.3,
+      "Temperate": 5.4,
+      "Continental": 6.3,
+      "Polar": NaN
+    },
+    "max": {
+      "Tropical": 32.2,
+      "Subtropical": 33.6,
+      "Temperate": 26.1,
+      "Continental": 12.2,
+      "Polar": NaN
+    }
+  },
+  "thresholds": {
+    "tropical": 23.5,
+    "subtropical": 35,
+    "temperate": 55,
+    "continental": 66.5,
+    "polar": 90
+  }
+}

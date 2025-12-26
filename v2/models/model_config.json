@@ -1,0 +1,44 @@
+{
+  "version": "2.0",
+  "feature_cols": [
+    "latitude",
+    "longitude",
+    "abs_latitude",
+    "latitude_normalized",
+    "hemisphere_encoded",
+    "climate_zone_encoded",
+    "month",
+    "day_of_month",
+    "day_of_week",
+    "day_of_year",
+    "quarter",
+    "is_weekend",
+    "month_sin",
+    "month_cos",
+    "day_sin",
+    "day_cos",
+    "day_of_year_sin",
+    "day_of_year_cos",
+    "temp_lag_1",
+    "temp_lag_2",
+    "temp_lag_3",
+    "temp_lag_7",
+    "temp_lag_14",
+    "temp_lag_30",
+    "temp_rolling_mean_7",
+    "temp_rolling_mean_14",
+    "temp_rolling_std_7"
+  ],
+  "input_dim": 27,
+  "hidden_dims": [
+    256,
+    128,
+    64
+  ],
+  "dropout": 0.3,
+  "metrics": {
+    "mae": 1.6,
+    "rmse": 2.35,
+    "r2": 0.9307
+  }
+}
