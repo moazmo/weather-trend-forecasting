@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'book/**'
-      - '.github/workflows/deploy-book.yml'
+      - "book/**"
+      - ".github/workflows/deploy-book.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,20 +23,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Install dependencies
         run: |
           pip install jupyter-book
-      
+          pip install plotly
+
       - name: Build the book
         run: |
-          jupyter-book build book
-      
+          cd book
+          jupyter-book build .
+          ls -la _build/html || echo "Build directory not found"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
