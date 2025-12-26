@@ -107,38 +107,43 @@ WeatherTrendForecasting/
 | Notebook | Description |
 |----------|-------------|
 | `01_eda_anomaly_detection` | Exploratory data analysis, statistical analysis, anomaly detection |
-| `02_forecasting_models` | Baseline models: ARIMA, XGBoost, Prophet, Ensemble |
+| `02_forecast_v1_baseline` | Baseline models: ARIMA, XGBoost, Prophet, Ensemble |
 | `03_advanced_forecasting` | Time series CV, Optuna tuning, multi-country models |
 | `04_data_quality_analysis` | Data quality checks, country name fixes, missing value analysis |
-| `05_unified_global_model` | **Main model**: Unified MLP for all countries |
+| `05_unified_global_model` | V1 Model: Unified MLP for all countries |
+| `v2/notebooks/03_lstm_model` | V2 Model: LSTM with sequence modeling |
+| `v2/notebooks/04_transformer_model` | **V2.3 Model**: Transformer with attention mechanism |
 
 ---
 
 ## 🧠 Model Architecture
 
+### Transformer (V2.3) - Current Production Model
+State-of-the-art sequence modeling architecture.
+
 ```
-Input (20 features)
-    ├── Country encoding
-    ├── Geographic (lat, lon)
-    ├── Temporal (month, day, week...)
-    ├── Cyclical (sin/cos encodings)
-    └── Lag features (1, 2, 3, 7, 14, 30 days)
-         ↓
-MLP Neural Network
-    ├── Dense + BatchNorm + ReLU + Dropout
-    ├── Dense + BatchNorm + ReLU + Dropout
-    └── Dense + BatchNorm + ReLU + Dropout
-         ↓
-Output: Temperature (°C)
+Input Sequence (30 Days)
+    ↓
+Positional Encoding
+    ↓
+Transformer Encoder (4 Layers)
+    ├── Multi-Head Self-Attention (8 heads)
+    └── Feed Forward Network (256 units)
+    ↓
+Output Head -> 7-Day Forecast
 ```
 
-### Performance
+### Previous Models
+- **V2.2 LSTM**: 2-layer LSTM with 128 hidden units.
+- **V1 MLP**: Simple feed-forward network with 3 dense layers.
 
-| Metric | Value |
-|--------|-------|
-| MAE | ~2-3°C |
-| RMSE | ~3-4°C |
-| R² | ~0.85+ |
+### Performance Evolution
+
+| Model | Architecture | MAE (Mean Absolute Error) |
+|-------|--------------|---------------------------|
+| V1 | MLP | ~4-5°C |
+| V2.2 | LSTM | 2.05°C |
+| **V2.3** | **Transformer** | **2.05°C (Faster Training)** |
 
 ---
 
@@ -148,57 +153,37 @@ Output: Temperature (°C)
 |--------|----------|-------------|
 | GET | `/` | Home page |
 | GET | `/api/countries` | List available countries |
-| POST | `/api/forecast` | Get 7-day forecast |
+| GET | `/api/nearest` | Find nearest country to coordinates |
+| POST | `/api/forecast` | Get 7-day forecast (Transformer powered) |
 | GET | `/api/health` | Health check |
 
-### Example Request
+### Example Request (V2)
 
 ```bash
-curl -X POST "http://localhost:8000/api/forecast" \
+curl -X POST "http://localhost:8001/api/forecast" \
   -H "Content-Type: application/json" \
-  -d '{"country": "Egypt", "start_date": "2025-01-15"}'
-```
-
-### Example Response
-
-```json
-{
-  "country": "Egypt",
-  "forecast": [
-    {"date": "2025-01-15", "temperature": 18.2, "day_name": "Wednesday"},
-    {"date": "2025-01-16", "temperature": 17.8, "day_name": "Thursday"},
-    ...
-  ],
-  "summary": {
-    "min_temp": 15.9,
-    "max_temp": 20.3,
-    "trend": "Cooling then Warming"
-  }
-}
+  -d '{"lat": 30.04, "lon": 31.23, "start_date": "2025-01-15"}'
 ```
 
 ---
 
 ## 📊 Dataset
-
 - **Source**: Global Weather Repository
-- **Records**: 114,000+ observations
-- **Countries**: 180+ countries
-- **Features**: Temperature, humidity, pressure, wind, precipitation, cloud cover, UV index
-- **Time Range**: ~2 years of daily data
+- **Records**: 100,000+ observations
+- **Countries**: 186 countries
+- **Features**: Temperature, Lat/Lon, Climate Zones, Temporal Embeddings
+- **Time Range**: ~2 years daily data
 
 ---
 
 ## 🛠️ Tech Stack
-
 | Category | Technologies |
 |----------|-------------|
-| **ML/DL** | PyTorch, scikit-learn, XGBoost |
-| **Optimization** | Optuna |
-| **Data** | Pandas, NumPy |
-| **Visualization** | Plotly, Matplotlib |
-| **API** | FastAPI, Uvicorn |
-| **Deployment** | Docker |
+| **Deep Learning** | **PyTorch** (Transformer, LSTM, MLP) |
+| **Backend** | **FastAPI**, Uvicorn |
+| **Data Processing** | Pandas, NumPy, Scikit-learn |
+| **Visualization** | Plotly, Leaflet.js (Frontend) |
+| **Notebooks** | Jupyter |
 
 ---
 
@@ -207,13 +192,13 @@ curl -X POST "http://localhost:8000/api/forecast" \
 - [x] EDA & Anomaly Detection
 - [x] Baseline Forecasting Models
 - [x] Multi-Country Models
-- [x] Unified Global MLP Model
-- [x] **V1**: FastAPI Web App (Country Dropdown)
-- [x] **V2**: Interactive Map with Location-Based Model
+- [x] **V1**: Unified Global MLP Model
+- [x] **V2**: Location-Based Model with Interactive Map
+- [x] **V2.2**: LSTM Sequence Model
+- [x] **V2.3**: Transformer Attention Model
 - [ ] Docker Containerization
 - [ ] CI/CD Pipeline
 - [ ] Cloud Deployment
-- [ ] Model Monitoring
 
 ---
 

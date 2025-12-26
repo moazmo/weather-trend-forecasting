@@ -1,0 +1,36 @@
+{
+  "version": "2.2-lstm",
+  "model_type": "lstm",
+  "feature_cols": [
+    "latitude",
+    "longitude",
+    "abs_latitude",
+    "latitude_normalized",
+    "hemisphere_encoded",
+    "climate_zone_encoded",
+    "month",
+    "day_of_month",
+    "day_of_week",
+    "day_of_year",
+    "quarter",
+    "is_weekend",
+    "month_sin",
+    "month_cos",
+    "day_sin",
+    "day_cos",
+    "day_of_year_sin",
+    "day_of_year_cos",
+    "temperature_celsius"
+  ],
+  "input_dim": 19,
+  "hidden_dim": 128,
+  "num_layers": 2,
+  "dropout": 0.3,
+  "seq_len": 30,
+  "pred_len": 7,
+  "metrics": {
+    "mae": 2.05,
+    "rmse": 2.79,
+    "r2": 0.9051
+  }
+}
