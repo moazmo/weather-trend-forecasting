@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-A production-ready machine learning system for global weather temperature forecasting. Built with PyTorch and FastAPI, this project provides 7-day temperature trend predictions for 180+ countries using a unified neural network model.
+A production-ready machine learning system for global weather temperature forecasting. Built with PyTorch and FastAPI, featuring an **Advanced Transformer with Gated Residual Networks** achieving **2.00°C MAE**. Provides 7-day temperature predictions for 180+ countries with real-time weather data integration via Open-Meteo API.
 
 ![Weather Forecast Demo](docs/demo.png)
 
@@ -14,7 +14,7 @@ A production-ready machine learning system for global weather temperature foreca
 ## ✨ Features
 
 - 🌡️ **7-Day Temperature Forecasting** - Predict temperature trends for any country
-- 🧠 **Unified MLP Model** - Single neural network trained on 180+ countries
+- 🧠 **Advanced Transformer** - Gated Residual Networks with 1.3M parameters
 - 🔧 **Optuna Optimization** - Hyperparameter tuning for optimal performance
 - 📊 **Interactive Visualizations** - Plotly-powered charts and analysis
 - 🚀 **GPU Accelerated** - CUDA support for fast training
@@ -69,10 +69,10 @@ uvicorn v2.app.main:app --reload --port 8001
 ```
 Open: http://localhost:8001
 
-| Version | Port | Features |
-|---------|------|----------|
-| **V1** | 8000 | Country dropdown, unified MLP |
-| **V2** | 8001 | Interactive map, location-based model, climate zones |
+| Version | Port | Features | MAE |
+|---------|------|----------|-----|
+| **V1** | 8000 | Country dropdown, unified MLP | ~4-5°C |
+| **V2/V4** | 8001 | Interactive map, Advanced Transformer, Open-Meteo | **2.00°C** |
 
 ---
 
@@ -112,38 +112,48 @@ WeatherTrendForecasting/
 | `04_data_quality_analysis` | Data quality checks, country name fixes, missing value analysis |
 | `05_unified_global_model` | V1 Model: Unified MLP for all countries |
 | `v2/notebooks/03_lstm_model` | V2 Model: LSTM with sequence modeling |
-| `v2/notebooks/04_transformer_model` | **V2.3 Model**: Transformer with attention mechanism |
+| `v2/notebooks/04_transformer_model` | V2.3 Model: Transformer with attention mechanism |
+| `v2/notebooks/05_multivariate_transformer` | V3 Model: Multivariate features |
+| `v2/notebooks/06_advanced_transformer` | **V4 Model**: Advanced Transformer with GRN |
 
 ---
 
 ## 🧠 Model Architecture
 
-### Transformer (V2.3) - Current Production Model
-State-of-the-art sequence modeling architecture.
+### Advanced Transformer (V4) - Current Production Model
+State-of-the-art architecture with Gated Residual Networks for multivariate weather forecasting.
 
 ```
-Input Sequence (30 Days)
+Input Sequence (30 Days × 25 Features)
+    ↓
+Gated Residual Network (Input)
     ↓
 Positional Encoding
     ↓
-Transformer Encoder (4 Layers)
+Transformer Encoder (6 Layers, 128 d_model)
     ├── Multi-Head Self-Attention (8 heads)
-    └── Feed Forward Network (256 units)
+    └── Feed Forward Network (512 units)
+    ↓
+Gated Residual Network (Output)
     ↓
 Output Head -> 7-Day Forecast
 ```
 
-### Previous Models
-- **V2.2 LSTM**: 2-layer LSTM with 128 hidden units.
-- **V1 MLP**: Simple feed-forward network with 3 dense layers.
+**Key Features:**
+- 🔄 **Open-Meteo Integration**: Real-time weather data for any coordinate
+- 🧪 **Multivariate Input**: Temperature, Humidity, Pressure, Wind, Cloud, Precipitation
+- 🚪 **Gated Residual Networks**: Learns to skip irrelevant features
+- 📊 **1.3M Parameters**: Deep, expressive model
 
 ### Performance Evolution
 
-| Model | Architecture | MAE (Mean Absolute Error) |
-|-------|--------------|---------------------------|
+| Model | Architecture | MAE |
+|-------|--------------|-----|
 | V1 | MLP | ~4-5°C |
 | V2.2 | LSTM | 2.05°C |
-| **V2.3** | **Transformer** | **2.05°C (Faster Training)** |
+| V2.3 | Transformer | 2.05°C |
+| V3.0 | Multivariate Transformer | 2.07°C |
+| **V4.0** | **Advanced Transformer + GRN** | **2.00°C** ✅ |
 
 ---
 
@@ -222,7 +232,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👤 Author
 
-**Mohamed Ashraf (MoAzMo)**
+**Moaz Muhammad (MoazMo)**
 
 - GitHub: [@moazmo](https://github.com/moazmo)
 
