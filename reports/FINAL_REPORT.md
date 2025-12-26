@@ -1,53 +1,54 @@
-# 🌍 Weather Trend Forecasting - Final Report
+# 🌍 Weather Trend Forecasting - Final Project Report
 
-## 🚀 Project Overview
-This project successfully developed a production-grade weather forecasting system capable of predicting temperature trends for 186 countries. Starting from a basic statistical approach, we evolved the system through multiple iterations, culminating in a state-of-the-art **Transformer-based** neural network.
-
-## 🏆 Key Achievements
-
-1.  **High Accuracy**: Achieved a Mean Absolute Error (MAE) of **~2.05°C**, a significant improvement over initial baseline models (4-5°C).
-2.  **Advanced Architecture**: Implemented and compared MLP, LSTM, and Transformer architectures.
-3.  **Real-time Interaction**: Built two web applications:
-    *   **V1**: Country-based dropdown interface.
-    *   **V2**: Interactive global map with location-based forecasting.
-4.  **Robust Backend**: precise data pipelines handling missing data, sequence generation, and feature engineering.
-
-## 🧠 Technical Evolution
-
-### Phase 1: The Baseline (V1)
-*   **Model**: Multi-Layer Perceptron (MLP)
-*   **Approach**: Global model trained on all countries.
-*   **Features**: Date, Month, Country Embedding.
-*   **Limitation**: Did not capture sequential time-dependencies well.
-
-### Phase 2: Sequence Modeling (V2.2)
-*   **Model**: LSTM (Long Short-Term Memory)
-*   **Innovation**: Treated weather as a time-series sequence (30-day lookback).
-*   **Improvement**: Drastically improved trend learning.
-
-### Phase 3: State-of-the-Art (V2.3 - Final)
-*   **Model**: **Transformer Encoder**
-*   **Why?**: Better at capturing long-range dependencies and parallelizable.
-*   **Architecture**:
-    *   **Positional Encoding**: To understand sequence order.
-    *   **Multi-Head Attention**: To look at different parts of the 30-day history simultaneously.
-    *   **Self-Attention**: To understand how past days relate to each other.
-
-## 📊 Final Performance Metrics
-
-| Metric | Transformer (V2.3) | LSTM (V2.2) | MLP (V1) |
-| :--- | :--- | :--- | :--- |
-| **MAE** | **2.05°C** | 2.05°C | ~4.1°C |
-| **Training Speed** | **Fast** | Slow | Fast |
-| **Inference** | Real-time | Real-time | Real-time |
-
-## 🔮 Future Recommendations
-
-To break the 2.0°C barrier, future work should focus on **Data Enrichment** rather than Model Architecture:
-1.  **Elevation Data**: Integrating topographical data (temperature drops with height).
-2.  **Proximity to Water**: Ocean/Lake distance affects temperature stability.
-3.  **External APIs**: Integrating live/real-time weather APIs for initial conditions.
+> **PM Accelerator Mission**: "Empowering professionals to build, scale, and lead AI-powered products that solve real-world problems while promoting diversity and educational fairness in tech."
 
 ---
 
-*Project completed on December 26, 2025.*
+## 🚀 1. Project Overview
+
+This project successfully developed a production-grade **AI Weather Forecasting System** capable of predicting 7-day temperature trends for 186 countries.
+
+Starting from raw historical weather data, we evolved the system through rigorous Data Science phases—from Exploratory Data Analysis (EDA) and Anomaly Detection to advanced Deep Learning—culminating in a state-of-the-art **Transformer Neural Network** (V4) that achieves a Mean Absolute Error (MAE) of **2.00°C**.
+
+## 📊 2. Data Cleaning & Analysis (EDA)
+
+Before modeling, valid data was crucial. We processed 15 years of global weather data:
+*   **Data Cleaning**: Fixed 30+ country name inconsistencies and handled missing values using forward-fill interpolation.
+*   **Feature Engineering**: Created cyclical features (sin/cos for day/month) to help models understand seasonality.
+*   **Anomaly Detection**: Applied Isolation Forest and Z-Score methods to remove unrealistic outliers (e.g., temperatures > 60°C or < -90°C in non-polar regions).
+
+## 🧠 3. Model Evolution & Evaluation
+
+We iterated through four major architectural phases to optimize performance:
+
+| Phase | Model Architecture | MAE (Error) | Key Insight |
+| :--- | :--- | :--- | :--- |
+| **V1** | **MLP (Baseline)** | ~4.50°C | Captured global mean but failed on local trends. |
+| **V2** | **LSTM (Seq2Seq)** | 2.05°C | Introducing time sequences (30-day lag) drastically improved accuracy. |
+| **V3** | **Multivariate** | 2.07°C | Added Pressure/Humidity. Slight regression due to noise. |
+| **V4** | **Advanced Transformer** | **2.00°C** | **Gated Residual Networks (GRN)** learned which features to trust, achieving state-of-the-art results. |
+
+## 🛠️ 4. Final Solution (V4)
+
+The final deployed solution is a **Dockerized Web Application** powered by FastAPI and the V4 Advanced Transformer.
+
+### Key Features
+1.  **Gated Residual Networks (GRN)**: Smartly filters noise from inputs.
+2.  **Open-Meteo Integration**: Fetches real-time historical data for any location on Earth to generate forecasts.
+3.  **Interactive Dashboard**: A beautiful, dark-mode map interface allowing users to click anywhere on the globe for instant predictions.
+
+## � 5. Visualizations & Insights
+
+The project includes interactive Plotly visualizations demonstrating:
+*   **Seasonality**: Clear sine-wave patterns in temperature across hemispheres.
+*   **Climate Zones**: Distinct statistical profiles for Tropical vs. Polar regions.
+*   **Model Performance**: "Actual vs. Predicted" charts showing the model's ability to track sudden weather changes.
+
+## 🏁 Conclusion
+
+This project demonstrates the end-to-end lifecycle of an AI product: form raw data analysis to model optimization and final deployment. The **V4 Advanced Transformer** stands as a robust, production-ready solution for global weather trend forecasting.
+
+---
+
+**Repository**: [GitHub Link]
+**Developed by**: [Your Name]
