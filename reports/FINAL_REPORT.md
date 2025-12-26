@@ -50,5 +50,5 @@ This project demonstrates the end-to-end lifecycle of an AI product: form raw da
 
 ---
 
-**Repository**: [GitHub Link]
-**Developed by**: [Your Name]
+**Repository**: github.com/moazmo
+**Developed by**: Moaz Muhammad
