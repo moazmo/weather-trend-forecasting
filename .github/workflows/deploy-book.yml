@@ -31,13 +31,13 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install jupyter-book
+          pip install "jupyter-book<2.0.0"
           pip install plotly nbformat
       
       - name: Build the book
         working-directory: book
         run: |
-          jupyter-book build .
+          jb build .
       
       - name: List build output
         run: |
