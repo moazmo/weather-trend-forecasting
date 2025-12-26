@@ -54,7 +54,6 @@
         margin: 0 auto;
       }
 
-      /* Map Container */
       .map-container {
         flex: 0 0 600px;
       }
@@ -76,9 +75,8 @@
         margin-top: 0.75rem;
       }
 
-      /* Sidebar */
       .sidebar {
-        flex: 0 0 380px;
+        flex: 0 0 400px;
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -115,7 +113,8 @@
         color: #4facfe;
         font-size: 0.9rem;
       }
-      input {
+      input,
+      select {
         width: 100%;
         padding: 0.7rem;
         border-radius: 8px;
@@ -123,6 +122,13 @@
         background: rgba(255, 255, 255, 0.1);
         color: #fff;
         font-size: 1rem;
+      }
+      select {
+        cursor: pointer;
+      }
+      select option {
+        background: #1a1a2e;
+        color: #fff;
       }
 
       button {
@@ -149,7 +155,7 @@
       }
 
       #chart {
-        height: 180px;
+        height: 200px;
         border-radius: 8px;
       }
 
@@ -174,11 +180,17 @@
         font-size: 0.7rem;
         color: rgba(255, 255, 255, 0.5);
       }
+      .stat.mae {
+        background: rgba(0, 255, 150, 0.1);
+      }
+      .stat.mae .stat-value {
+        color: #00f296;
+      }
 
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
       }
       th,
       td {
@@ -189,9 +201,39 @@
       th {
         color: #4facfe;
       }
+      .actual {
+        color: #00f296;
+      }
+      .error {
+        color: #ff6b6b;
+        font-size: 0.75rem;
+      }
 
       .hidden {
         display: none;
+      }
+      .legend {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .legend-dot.predicted {
+        background: #4facfe;
+      }
+      .legend-dot.actual {
+        background: #00f296;
       }
 
       @media (max-width: 1000px) {
@@ -212,7 +254,7 @@
     <div class="header">
       <h1>🌍 Weather Forecast V2</h1>
       <p class="subtitle">
-        Click anywhere on the map to get a 7-day temperature forecast
+        Select a country or click on the map for a 7-day temperature forecast
       </p>
     </div>
 
@@ -220,20 +262,25 @@
       <div class="map-container">
         <div class="map-wrapper">
           <div id="map"></div>
-          <p class="map-hint">👆 Click to select location</p>
+          <p class="map-hint">📍 Click markers or anywhere on map to select</p>
         </div>
       </div>
 
       <div class="sidebar">
         <div class="card">
+          <h3>🔍 Search Country</h3>
+          <select id="countrySelect">
+            <option value="">-- Select a country --</option>
+          </select>
+        </div>
+
+        <div class="card">
           <h3>📍 Selected Location</h3>
           <div class="location-info">
-            <span>Latitude:</span><strong id="lat">-</strong>
-            <span>Longitude:</span><strong id="lon">-</strong>
-            <span>Nearest Country:</span><strong id="country">-</strong>
-            <span>Distance:</span><strong id="distance">-</strong>
+            <span>Country:</span><strong id="country">-</strong>
             <span>Climate Zone:</span><strong id="climate">-</strong>
             <span>Hemisphere:</span><strong id="hemisphere">-</strong>
+            <span>Coordinates:</span><strong id="coords">-</strong>
           </div>
         </div>
 
@@ -247,6 +294,7 @@
           <div class="card">
             <h3>📈 Temperature Trend</h3>
             <div id="chart"></div>
+            <div class="legend" id="legend"></div>
             <div class="summary" id="summary"></div>
           </div>
 
@@ -257,7 +305,9 @@
                 <tr>
                   <th>Date</th>
                   <th>Day</th>
-                  <th>Temp</th>
+                  <th>Predicted</th>
+                  <th>Actual</th>
+                  <th>Error</th>
                 </tr>
               </thead>
               <tbody id="table"></tbody>
@@ -268,6 +318,7 @@
     </div>
 
     <script>
+      // Initialize map
       const map = L.map("map").setView([25, 30], 2);
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -279,31 +330,83 @@
 
       let marker = null;
       let selectedLat = null,
-        selectedLon = null;
+        selectedLon = null,
+        selectedCountry = null;
+      let countryMarkers = {};
       const $ = (id) => document.getElementById(id);
       $("date").value = new Date().toISOString().split("T")[0];
 
-      map.on("click", async (e) => {
-        selectedLat = e.latlng.lat;
-        selectedLon = e.latlng.lng;
+      // Load countries and add markers
+      async function loadCountries() {
+        const res = await fetch("/api/countries");
+        const countries = await res.json();
 
+        // Populate dropdown
+        const select = $("countrySelect");
+        countries.sort((a, b) => a.name.localeCompare(b.name));
+        countries.forEach((c) => {
+          const opt = document.createElement("option");
+          opt.value = c.name;
+          opt.textContent = `${c.name} (${c.climate_zone})`;
+          opt.dataset.lat = c.lat;
+          opt.dataset.lon = c.lon;
+          select.appendChild(opt);
+        });
+
+        // Add markers to map
+        countries.forEach((c) => {
+          const m = L.circleMarker([c.lat, c.lon], {
+            radius: 5,
+            fillColor: "#4facfe",
+            fillOpacity: 0.7,
+            color: "#fff",
+            weight: 1,
+          }).addTo(map);
+          m.bindTooltip(c.name);
+          m.on("click", () => selectLocation(c.lat, c.lon, c.name));
+          countryMarkers[c.name] = m;
+        });
+      }
+
+      // Select location
+      async function selectLocation(lat, lon, country = null) {
+        selectedLat = lat;
+        selectedLon = lon;
+
+        // Update marker
         if (marker) map.removeLayer(marker);
-        marker = L.marker([selectedLat, selectedLon]).addTo(map);
+        marker = L.marker([lat, lon]).addTo(map);
 
-        $("lat").textContent = selectedLat.toFixed(4);
-        $("lon").textContent = selectedLon.toFixed(4);
+        // Get info from API
+        const res = await fetch(`/api/nearest?lat=${lat}&lon=${lon}`);
+        const data = await res.json();
+
+        selectedCountry = data.country;
+        $("country").textContent = data.country;
+        $("climate").textContent = data.climate_zone;
+        $("hemisphere").textContent = data.hemisphere;
+        $("coords").textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
         $("btn").disabled = false;
 
-        const res = await fetch(
-          `/api/nearest?lat=${selectedLat}&lon=${selectedLon}`
-        );
-        const data = await res.json();
-        $("country").textContent = data.country;
-        $("distance").textContent = `${data.distance_km} km`;
-        $('climate').textContent = data.climate_zone;
-        $('hemisphere').textContent = data.hemisphere;
-      });
+        // Sync dropdown
+        $("countrySelect").value = data.country;
+      }
 
+      // Dropdown change
+      $("countrySelect").onchange = function () {
+        const opt = this.options[this.selectedIndex];
+        if (opt.value) {
+          const lat = parseFloat(opt.dataset.lat);
+          const lon = parseFloat(opt.dataset.lon);
+          map.setView([lat, lon], 5);
+          selectLocation(lat, lon, opt.value);
+        }
+      };
+
+      // Map click
+      map.on("click", (e) => selectLocation(e.latlng.lat, e.latlng.lng));
+
+      // Forecast button
       $("btn").onclick = async () => {
         $("btn").disabled = true;
         $("btn").textContent = "⏳ Loading...";
@@ -321,20 +424,40 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.detail);
 
+          // Chart with both lines
+          const traces = [
+            {
+              x: data.forecast.map((f) => f.date),
+              y: data.forecast.map((f) => f.temp),
+              type: "scatter",
+              mode: "lines+markers",
+              name: "Predicted",
+              line: { color: "#4facfe", width: 2 },
+              marker: { size: 6 },
+            },
+          ];
+
+          // Add actual line if available
+          const hasActual = data.summary.has_actual;
+          if (hasActual) {
+            traces.push({
+              x: data.forecast
+                .filter((f) => f.actual != null)
+                .map((f) => f.date),
+              y: data.forecast
+                .filter((f) => f.actual != null)
+                .map((f) => f.actual),
+              type: "scatter",
+              mode: "lines+markers",
+              name: "Actual",
+              line: { color: "#00f296", width: 2 },
+              marker: { size: 6 },
+            });
+          }
+
           Plotly.newPlot(
             "chart",
-            [
-              {
-                x: data.forecast.map((f) => f.date),
-                y: data.forecast.map((f) => f.temp),
-                type: "scatter",
-                mode: "lines+markers",
-                line: { color: "#4facfe", width: 2 },
-                marker: { size: 6 },
-                fill: "tozeroy",
-                fillcolor: "rgba(79,172,254,0.1)",
-              },
-            ],
+            traces,
             {
               paper_bgcolor: "transparent",
               plot_bgcolor: "transparent",
@@ -342,23 +465,53 @@
               xaxis: { gridcolor: "rgba(255,255,255,0.1)" },
               yaxis: { gridcolor: "rgba(255,255,255,0.1)", title: "°C" },
               margin: { t: 10, r: 10, b: 30, l: 35 },
+              showlegend: false,
             },
             { responsive: true, displayModeBar: false }
           );
 
+          // Legend
+          $("legend").innerHTML = hasActual
+            ? `
+                    <div class="legend-item"><div class="legend-dot predicted"></div>Predicted</div>
+                    <div class="legend-item"><div class="legend-dot actual"></div>Actual</div>
+                `
+            : "";
+
+          // Summary
           const s = data.summary;
-          $("summary").innerHTML = `
+          let summaryHtml = `
                     <div class="stat"><div class="stat-value">${s.min}°</div><div class="stat-label">Min</div></div>
                     <div class="stat"><div class="stat-value">${s.max}°</div><div class="stat-label">Max</div></div>
                     <div class="stat"><div class="stat-value">${s.avg}°</div><div class="stat-label">Avg</div></div>
-                    <div class="stat"><div class="stat-value">${s.trend}</div><div class="stat-label">Trend</div></div>
                 `;
+          if (hasActual && s.mae != null) {
+            summaryHtml += `<div class="stat mae"><div class="stat-value">${s.mae}°</div><div class="stat-label">MAE</div></div>`;
+          } else {
+            summaryHtml += `<div class="stat"><div class="stat-value">${s.trend}</div><div class="stat-label">Trend</div></div>`;
+          }
+          $("summary").innerHTML = summaryHtml;
 
+          // Table
           $("table").innerHTML = data.forecast
-            .map(
-              (f) =>
-                `<tr><td>${f.date}</td><td>${f.day}</td><td><strong>${f.temp}°C</strong></td></tr>`
-            )
+            .map((f) => {
+              const actual =
+                f.actual != null
+                  ? `<span class="actual">${f.actual}°C</span>`
+                  : "-";
+              const error =
+                f.actual != null
+                  ? `<span class="error">${Math.abs(f.temp - f.actual).toFixed(
+                      1
+                    )}°</span>`
+                  : "-";
+              return `<tr><td>${f.date}</td><td>${f.day.slice(
+                0,
+                3
+              )}</td><td><strong>${
+                f.temp
+              }°C</strong></td><td>${actual}</td><td>${error}</td></tr>`;
+            })
             .join("");
 
           $("results").classList.remove("hidden");
@@ -369,6 +522,9 @@
         $("btn").disabled = false;
         $("btn").textContent = "🔍 Get 7-Day Forecast";
       };
+
+      // Load countries on start
+      loadCountries();
     </script>
   </body>
 </html>

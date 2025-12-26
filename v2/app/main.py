@@ -1,4 +1,4 @@
-"""V2 Weather Trend Forecasting API - Location-Based Model."""
+"""V2 Weather Trend Forecasting API - Location-Based Model with Historical Comparison."""
 from datetime import datetime, timedelta
 from pathlib import Path
 from math import radians, sin, cos, sqrt, atan2
@@ -19,7 +19,7 @@ from pydantic import BaseModel
 # ============================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 V2_MODELS_DIR = BASE_DIR / "models"
-V1_MODELS_DIR = BASE_DIR.parent / "models"  # For fallback country stats
+DATA_DIR = BASE_DIR.parent / "data" / "processed"
 
 
 # ============================================
@@ -62,10 +62,19 @@ def load_artifacts():
     with open(V2_MODELS_DIR / "climate_zones.json", "r") as f:
         climate_data = json.load(f)
     
-    return model, scaler, stats, stats_df, feature_cols, climate_data
+    # Historical data for actual vs predicted comparison
+    historical = {}
+    hist_path = DATA_DIR / "weather_cleaned.csv"
+    if hist_path.exists():
+        hist_df = pd.read_csv(hist_path, parse_dates=["date"])
+        for _, row in hist_df.iterrows():
+            key = (row["country"], row["date"].strftime("%Y-%m-%d"))
+            historical[key] = round(row["temperature_celsius"], 1)
+    
+    return model, scaler, stats, stats_df, feature_cols, climate_data, historical
 
 
-MODEL, SCALER, COUNTRY_STATS, STATS_DF, FEATURE_COLS, CLIMATE_DATA = load_artifacts()
+MODEL, SCALER, COUNTRY_STATS, STATS_DF, FEATURE_COLS, CLIMATE_DATA, HISTORICAL_DATA = load_artifacts()
 COUNTRIES = sorted(COUNTRY_STATS.keys())
 
 
@@ -105,22 +114,37 @@ def get_climate_zone(lat: float) -> tuple[str, int]:
 # ============================================
 # Prediction Logic (V2 - Location-Based)
 # ============================================
-def predict_forecast(lat: float, lon: float, start_date: str, days: int = 7) -> list[dict]:
+def predict_forecast(lat: float, lon: float, start_date: str, days: int = 7) -> tuple:
     # Get climate info for location
     climate_zone, climate_zone_encoded = get_climate_zone(lat)
     hemisphere_encoded = 1 if lat >= 0 else 0
     abs_latitude = abs(lat)
     latitude_normalized = abs_latitude / 90.0
     
-    # Find nearest country for month-specific temps
+    # Find nearest country for month-specific temps and historical lookup
     nearest_country, _ = find_nearest_country(lat, lon)
     stats = COUNTRY_STATS.get(nearest_country, {})
     
-    # Initialize temperature history
+    # Initialize temperature history - try to use REAL historical data
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     month_key = f"temp_mean_month_{start_dt.month}"
     month_avg = stats.get(month_key, stats.get("temp_mean", 20.0))
-    temp_history = [float(month_avg)] * 30
+    
+    # Try to get real historical temps from 30 days before start_date
+    real_history = []
+    for i in range(30, 0, -1):  # 30 days ago to 1 day ago
+        hist_date = (start_dt - timedelta(days=i)).strftime("%Y-%m-%d")
+        key = (nearest_country, hist_date)
+        if key in HISTORICAL_DATA:
+            real_history.append(HISTORICAL_DATA[key])
+    
+    # Use real data if we have all 30 days, otherwise fallback to average
+    if len(real_history) == 30:
+        temp_history = real_history
+        using_real_lags = True
+    else:
+        temp_history = [float(month_avg)] * 30
+        using_real_lags = False
     
     forecasts = []
     current = start_dt
@@ -128,39 +152,20 @@ def predict_forecast(lat: float, lon: float, start_date: str, days: int = 7) -> 
     for _ in range(days):
         # Build feature vector matching training order
         features = {
-            # Geographic
-            'latitude': lat,
-            'longitude': lon,
-            'abs_latitude': abs_latitude,
-            'latitude_normalized': latitude_normalized,
-            'hemisphere_encoded': hemisphere_encoded,
-            'climate_zone_encoded': climate_zone_encoded,
-            
-            # Temporal
-            'month': current.month,
-            'day_of_month': current.day,
-            'day_of_week': current.weekday(),
-            'day_of_year': current.timetuple().tm_yday,
-            'quarter': (current.month - 1) // 3 + 1,
+            'latitude': lat, 'longitude': lon,
+            'abs_latitude': abs_latitude, 'latitude_normalized': latitude_normalized,
+            'hemisphere_encoded': hemisphere_encoded, 'climate_zone_encoded': climate_zone_encoded,
+            'month': current.month, 'day_of_month': current.day, 'day_of_week': current.weekday(),
+            'day_of_year': current.timetuple().tm_yday, 'quarter': (current.month - 1) // 3 + 1,
             'is_weekend': int(current.weekday() >= 5),
-            
-            # Cyclical
             'month_sin': np.sin(2 * np.pi * current.month / 12),
             'month_cos': np.cos(2 * np.pi * current.month / 12),
             'day_sin': np.sin(2 * np.pi * current.weekday() / 7),
             'day_cos': np.cos(2 * np.pi * current.weekday() / 7),
             'day_of_year_sin': np.sin(2 * np.pi * current.timetuple().tm_yday / 365),
             'day_of_year_cos': np.cos(2 * np.pi * current.timetuple().tm_yday / 365),
-            
-            # Lag features
-            'temp_lag_1': temp_history[-1],
-            'temp_lag_2': temp_history[-2],
-            'temp_lag_3': temp_history[-3],
-            'temp_lag_7': temp_history[-7],
-            'temp_lag_14': temp_history[-14],
-            'temp_lag_30': temp_history[-30],
-            
-            # Rolling stats
+            'temp_lag_1': temp_history[-1], 'temp_lag_2': temp_history[-2], 'temp_lag_3': temp_history[-3],
+            'temp_lag_7': temp_history[-7], 'temp_lag_14': temp_history[-14], 'temp_lag_30': temp_history[-30],
             'temp_rolling_mean_7': np.mean(temp_history[-7:]),
             'temp_rolling_mean_14': np.mean(temp_history[-14:]),
             'temp_rolling_std_7': np.std(temp_history[-7:])
@@ -171,21 +176,29 @@ def predict_forecast(lat: float, lon: float, start_date: str, days: int = 7) -> 
         with torch.no_grad():
             pred = MODEL(torch.FloatTensor(X_scaled)).item()
         
-        forecasts.append({
-            "date": current.strftime("%Y-%m-%d"),
+        # Check for actual temperature in historical data
+        date_str = current.strftime("%Y-%m-%d")
+        actual = HISTORICAL_DATA.get((nearest_country, date_str))
+        
+        forecast_item = {
+            "date": date_str,
             "day": current.strftime("%A"),
             "temp": round(pred, 1)
-        })
+        }
+        if actual is not None:
+            forecast_item["actual"] = actual
+        
+        forecasts.append(forecast_item)
         temp_history.append(pred)
         current += timedelta(days=1)
     
-    return forecasts, climate_zone, nearest_country
+    return forecasts, climate_zone, nearest_country, using_real_lags
 
 
 # ============================================
 # FastAPI App
 # ============================================
-app = FastAPI(title="Weather Trend Forecasting V2", version="2.0.0")
+app = FastAPI(title="Weather Trend Forecasting V2", version="2.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -200,26 +213,60 @@ async def home():
     return (Path(__file__).parent / "templates" / "index.html").read_text(encoding="utf-8")
 
 
+@app.get("/api/countries")
+async def get_countries():
+    """Return list of all countries with their coordinates for map markers."""
+    return [
+        {
+            "name": row["country"],
+            "lat": row["latitude"],
+            "lon": row["longitude"],
+            "climate_zone": row["climate_zone"]
+        }
+        for _, row in STATS_DF.iterrows()
+    ]
+
+
 @app.get("/api/nearest")
 async def get_nearest(lat: float, lon: float):
     country, distance = find_nearest_country(lat, lon)
+    stats = COUNTRY_STATS.get(country, {})
     climate_zone, _ = get_climate_zone(lat)
     hemisphere = "Northern" if lat >= 0 else "Southern"
     return {
         "country": country,
         "distance_km": distance,
         "climate_zone": climate_zone,
-        "hemisphere": hemisphere
+        "hemisphere": hemisphere,
+        "country_lat": stats.get("latitude"),
+        "country_lon": stats.get("longitude")
     }
 
 
 @app.post("/api/forecast")
 async def get_forecast(req: LocationRequest):
     try:
-        forecast, climate_zone, nearest_country = predict_forecast(req.lat, req.lon, req.start_date)
+        forecast, climate_zone, nearest_country, using_real_lags = predict_forecast(req.lat, req.lon, req.start_date)
         temps = [f["temp"] for f in forecast]
         trend = "↗ Warming" if temps[-1] > temps[0] else "↘ Cooling" if temps[-1] < temps[0] else "→ Stable"
         hemisphere = "Northern" if req.lat >= 0 else "Southern"
+        
+        # Calculate MAE if actuals available
+        actuals = [f.get("actual") for f in forecast if f.get("actual") is not None]
+        preds_with_actual = [f["temp"] for f in forecast if f.get("actual") is not None]
+        
+        summary = {
+            "min": min(temps),
+            "max": max(temps),
+            "avg": round(np.mean(temps), 1),
+            "trend": trend,
+            "has_actual": len(actuals) > 0,
+            "actual_days": len(actuals),
+            "using_real_lags": using_real_lags
+        }
+        
+        if actuals:
+            summary["mae"] = round(np.mean([abs(a - p) for a, p in zip(actuals, preds_with_actual)]), 2)
         
         return {
             "location": {"lat": req.lat, "lon": req.lon},
@@ -227,12 +274,7 @@ async def get_forecast(req: LocationRequest):
             "climate_zone": climate_zone,
             "hemisphere": hemisphere,
             "forecast": forecast,
-            "summary": {
-                "min": min(temps),
-                "max": max(temps),
-                "avg": round(np.mean(temps), 1),
-                "trend": trend
-            }
+            "summary": summary
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -240,4 +282,10 @@ async def get_forecast(req: LocationRequest):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "2.0", "model": "location-based", "countries": len(COUNTRIES)}
+    return {
+        "status": "healthy",
+        "version": "2.1",
+        "model": "location-based",
+        "countries": len(COUNTRIES),
+        "historical_records": len(HISTORICAL_DATA)
+    }
