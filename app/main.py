@@ -4,12 +4,12 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ============================================
@@ -17,6 +17,7 @@ from pydantic import BaseModel
 # ============================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODELS_DIR = BASE_DIR / "models"
+DATA_DIR = BASE_DIR / "data" / "processed"
 
 
 # ============================================
@@ -48,12 +49,21 @@ def load_artifacts():
     
     scaler = joblib.load(MODELS_DIR / "feature_scaler.joblib")
     encoder = joblib.load(MODELS_DIR / "country_encoder.joblib")
-    stats = {row["country"]: row for _, row in __import__("pandas").read_csv(MODELS_DIR / "country_stats.csv").iterrows()}
     
-    return model, scaler, encoder, stats
+    stats_df = pd.read_csv(MODELS_DIR / "country_stats.csv")
+    stats = {row["country"]: row.to_dict() for _, row in stats_df.iterrows()}
+    
+    # Load historical data for comparison
+    historical = None
+    hist_path = DATA_DIR / "weather_cleaned.csv"
+    if hist_path.exists():
+        hist_df = pd.read_csv(hist_path, parse_dates=["date"])
+        historical = hist_df.groupby(["country", "date"])["temperature_celsius"].mean().to_dict()
+    
+    return model, scaler, encoder, stats, historical
 
 
-MODEL, SCALER, ENCODER, COUNTRY_STATS = load_artifacts()
+MODEL, SCALER, ENCODER, COUNTRY_STATS, HISTORICAL_DATA = load_artifacts()
 COUNTRIES = sorted(ENCODER.classes_.tolist())
 FEATURE_COLS = [
     "country_encoded", "latitude", "longitude", "month", "day_of_month", "day_of_week",
@@ -71,9 +81,14 @@ def predict_forecast(country: str, start_date: str, days: int = 7) -> list[dict]
     if not stats:
         raise ValueError(f"Country '{country}' not found")
     
-    temp_history = [float(stats["temp_mean"])] * 30
+    # Use month-specific average for better seasonal initialization
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    month_key = f"temp_mean_month_{start_dt.month}"
+    month_avg = stats.get(month_key, stats["temp_mean"])
+    temp_history = [float(month_avg)] * 30
+    
     forecasts = []
-    current = datetime.strptime(start_date, "%Y-%m-%d")
+    current = start_dt
     
     for _ in range(days):
         features = {
@@ -100,7 +115,19 @@ def predict_forecast(country: str, start_date: str, days: int = 7) -> list[dict]
         with torch.no_grad():
             pred = MODEL(torch.FloatTensor(X_scaled)).item()
         
-        forecasts.append({"date": current.strftime("%Y-%m-%d"), "day": current.strftime("%A"), "temp": round(pred, 1)})
+        # Check for actual data
+        actual = None
+        if HISTORICAL_DATA:
+            key = (country, pd.Timestamp(current.date()))
+            if key in HISTORICAL_DATA:
+                actual = round(HISTORICAL_DATA[key], 1)
+        
+        forecasts.append({
+            "date": current.strftime("%Y-%m-%d"), 
+            "day": current.strftime("%A"), 
+            "temp": round(pred, 1),
+            "actual": actual
+        })
         temp_history.append(pred)
         current += timedelta(days=1)
     
@@ -119,15 +146,9 @@ class ForecastRequest(BaseModel):
     start_date: str  # YYYY-MM-DD
 
 
-class ForecastResponse(BaseModel):
-    country: str
-    forecast: list[dict]
-    summary: dict
-
-
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return (BASE_DIR / "app" / "templates" / "index.html").read_text()
+    return (BASE_DIR / "app" / "templates" / "index.html").read_text(encoding="utf-8")
 
 
 @app.get("/api/countries")
@@ -135,21 +156,31 @@ async def get_countries():
     return {"countries": COUNTRIES}
 
 
-@app.post("/api/forecast", response_model=ForecastResponse)
+@app.post("/api/forecast")
 async def get_forecast(req: ForecastRequest):
     try:
         forecast = predict_forecast(req.country, req.start_date)
         temps = [f["temp"] for f in forecast]
+        actuals = [f["actual"] for f in forecast if f["actual"] is not None]
+        
         trend = "↗ Warming" if temps[-1] > temps[0] else "↘ Cooling" if temps[-1] < temps[0] else "→ Stable"
-        return {
-            "country": req.country,
-            "forecast": forecast,
-            "summary": {"min": min(temps), "max": max(temps), "avg": round(np.mean(temps), 1), "trend": trend}
-        }
+        
+        summary = {"min": min(temps), "max": max(temps), "avg": round(np.mean(temps), 1), "trend": trend}
+        
+        # Add comparison stats if we have actual data
+        if actuals:
+            errors = [abs(f["temp"] - f["actual"]) for f in forecast if f["actual"] is not None]
+            summary["has_actual"] = True
+            summary["mae"] = round(np.mean(errors), 2)
+            summary["actual_days"] = len(actuals)
+        else:
+            summary["has_actual"] = False
+        
+        return {"country": req.country, "forecast": forecast, "summary": summary}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "countries": len(COUNTRIES)}
+    return {"status": "healthy", "countries": len(COUNTRIES), "has_historical": HISTORICAL_DATA is not None}
