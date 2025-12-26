@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🌍 Weather Trend Forecasting</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        min-height: 100vh;
+        color: #fff;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      h1 {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        background: linear-gradient(90deg, #4facfe, #00f2fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .form-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .form-group {
+        flex: 1;
+        min-width: 200px;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4facfe;
+      }
+      select,
+      input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 1rem;
+      }
+      select option {
+        background: #1a1a2e;
+      }
+      button {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(90deg, #4facfe, #00f2fe);
+        border: none;
+        border-radius: 8px;
+        color: #1a1a2e;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      #chart {
+        height: 350px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .stat {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(79, 172, 254, 0.1);
+        border-radius: 12px;
+      }
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #4facfe;
+      }
+      .stat-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 0.25rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      th {
+        color: #4facfe;
+        font-weight: 500;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🌍 Weather Trend Forecasting</h1>
+
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="country">Country</label>
+            <select id="country">
+              <option>Loading...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="date">Start Date</label>
+            <input type="date" id="date" />
+          </div>
+        </div>
+        <button id="btn" style="margin-top: 1rem">🔍 Get 7-Day Forecast</button>
+      </div>
+
+      <div id="results" class="hidden">
+        <div class="card">
+          <div id="chart"></div>
+          <div class="summary" id="summary"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom: 1rem; color: #4facfe">
+            📅 Daily Breakdown
+          </h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Temperature</th>
+              </tr>
+            </thead>
+            <tbody id="table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const API = ""; // Empty for same origin
+
+      // Init
+      (async () => {
+        const res = await fetch(`${API}/api/countries`);
+        const { countries } = await res.json();
+        $("country").innerHTML = countries
+          .map((c) => `<option>${c}</option>`)
+          .join("");
+        $("date").value = new Date().toISOString().split("T")[0];
+      })();
+
+      // Forecast
+      $("btn").onclick = async () => {
+        $("btn").disabled = true;
+        $("btn").textContent = "⏳ Loading...";
+
+        try {
+          const res = await fetch(`${API}/api/forecast`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              country: $("country").value,
+              start_date: $("date").value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail);
+
+          // Chart
+          Plotly.newPlot(
+            "chart",
+            [
+              {
+                x: data.forecast.map((f) => f.date),
+                y: data.forecast.map((f) => f.temp),
+                type: "scatter",
+                mode: "lines+markers",
+                line: { color: "#4facfe", width: 3 },
+                marker: { size: 10 },
+                fill: "tozeroy",
+                fillcolor: "rgba(79,172,254,0.1)",
+              },
+            ],
+            {
+              paper_bgcolor: "transparent",
+              plot_bgcolor: "transparent",
+              font: { color: "#fff" },
+              xaxis: { gridcolor: "rgba(255,255,255,0.1)" },
+              yaxis: {
+                gridcolor: "rgba(255,255,255,0.1)",
+                title: "Temperature (°C)",
+              },
+              margin: { t: 20, r: 20, b: 40, l: 50 },
+            },
+            { responsive: true }
+          );
+
+          // Summary
+          const s = data.summary;
+          $("summary").innerHTML = `
+                    <div class="stat"><div class="stat-value">${s.min}°</div><div class="stat-label">Min</div></div>
+                    <div class="stat"><div class="stat-value">${s.max}°</div><div class="stat-label">Max</div></div>
+                    <div class="stat"><div class="stat-value">${s.avg}°</div><div class="stat-label">Average</div></div>
+                    <div class="stat"><div class="stat-value">${s.trend}</div><div class="stat-label">Trend</div></div>
+                `;
+
+          // Table
+          $("table").innerHTML = data.forecast
+            .map(
+              (f) =>
+                `<tr><td>${f.date}</td><td>${f.day}</td><td><strong>${f.temp}°C</strong></td></tr>`
+            )
+            .join("");
+
+          $("results").classList.remove("hidden");
+        } catch (e) {
+          alert("Error: " + e.message);
+        }
+
+        $("btn").disabled = false;
+        $("btn").textContent = "🔍 Get 7-Day Forecast";
+      };
+    </script>
+  </body>
+</html>
