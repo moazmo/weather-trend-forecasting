@@ -55,11 +55,24 @@ pip install -r requirements.txt
 jupyter notebook notebooks/
 ```
 
-### Run Web App (Coming Soon)
+### Run Web Applications
 
+#### V1 - Country Dropdown (Port 8000)
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8000
 ```
+Open: http://localhost:8000
+
+#### V2 - Interactive Map (Port 8001)
+```bash
+uvicorn v2.app.main:app --reload --port 8001
+```
+Open: http://localhost:8001
+
+| Version | Port | Features |
+|---------|------|----------|
+| **V1** | 8000 | Country dropdown, unified MLP |
+| **V2** | 8001 | Interactive map, location-based model, climate zones |
 
 ---
 
@@ -195,7 +208,8 @@ curl -X POST "http://localhost:8000/api/forecast" \
 - [x] Baseline Forecasting Models
 - [x] Multi-Country Models
 - [x] Unified Global MLP Model
-- [ ] FastAPI Web Application
+- [x] **V1**: FastAPI Web App (Country Dropdown)
+- [x] **V2**: Interactive Map with Location-Based Model
 - [ ] Docker Containerization
 - [ ] CI/CD Pipeline
 - [ ] Cloud Deployment
