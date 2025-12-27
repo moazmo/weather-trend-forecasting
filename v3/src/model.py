@@ -1,168 +1,77 @@
-"""
-V3 Model Architecture
-Climate-Aware Transformer with Gated Residual Networks.
-"""
-
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-
-class GatedResidualNetwork(nn.Module):
+class HybridClimateTransformer(nn.Module):
     """
-    Gated Residual Network (GRN) for feature filtering.
-
-    The GRN automatically suppresses irrelevant features through
-    a learned gating mechanism, making the model robust to
-    optional/missing user inputs.
+    V3.1 Hybrid Static-Dynamic Transformer with Country Embeddings.
+    Separates dynamic time-series features from static geographic features.
     """
-
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, dropout: float = 0.2):
+    def __init__(self, 
+                 num_countries, 
+                 dyn_input_dim, 
+                 stat_input_dim, 
+                 d_model=128, 
+                 nhead=4, 
+                 num_layers=3, 
+                 dropout=0.2,
+                 seq_len=14,
+                 pred_len=7):
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, output_dim)
-        self.gate = nn.Linear(hidden_dim, output_dim)
-        self.layer_norm = nn.LayerNorm(output_dim)
-        self.dropout = nn.Dropout(dropout)
-
-        # Skip connection for dimension mismatch
-        self.skip = nn.Linear(input_dim, output_dim) if input_dim != output_dim else None
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass with gated residual connection.
-
-        Args:
-            x: Input tensor of shape (batch, seq_len, input_dim)
-
-        Returns:
-            Output tensor of shape (batch, seq_len, output_dim)
-        """
-        residual = self.skip(x) if self.skip else x
-
-        h = torch.relu(self.fc1(x))
-        h = self.dropout(h)
-
-        # Gated Linear Unit (GLU)
-        gate = torch.sigmoid(self.gate(h))
-        out = self.fc2(h) * gate
-
-        return self.layer_norm(out + residual)
-
-
-class V3ClimateTransformer(nn.Module):
-    """
-    Climate-Aware Transformer for weather forecasting.
-
-    Architecture:
-        1. Input GRN: Filters and projects features to d_model
-        2. Positional Encoding: Learned positional embeddings
-        3. Transformer Encoder: Multi-head attention layers
-        4. Output GRN: Final feature refinement
-        5. Prediction Head: Projects to forecast length
-
-    Args:
-        input_dim: Number of input features
-        d_model: Transformer hidden dimension
-        nhead: Number of attention heads
-        num_layers: Number of transformer layers
-        dropout: Dropout probability
-        seq_len: Input sequence length
-        pred_len: Output prediction length
-    """
-
-    def __init__(
-        self,
-        input_dim: int,
-        d_model: int = 128,
-        nhead: int = 8,
-        num_layers: int = 4,
-        dropout: float = 0.2,
-        seq_len: int = 14,
-        pred_len: int = 7,
-    ):
-        super().__init__()
-        self.d_model = d_model
-        self.seq_len = seq_len
-        self.pred_len = pred_len
-
-        # Input GRN (feature filtering)
-        self.input_grn = GatedResidualNetwork(input_dim, d_model * 2, d_model, dropout)
-
-        # Learnable Positional Encoding
+        
+        # 1. Feature Processors
+        # Learnable vector per country to capture latent geography
+        self.country_emb = nn.Embedding(num_countries, 16) 
+        
+        # Dynamic Feature Encoder (Linear projection to d_model)
+        self.dyn_encoder = nn.Linear(dyn_input_dim, d_model)
+        
+        # Static Feature Encoder (Linear projection to discrete size)
+        # +16 for country embedding concatenation
+        self.stat_encoder = nn.Linear(stat_input_dim + 16, d_model)
+        
+        # 2. Transformer Backbone (Processes only dynamic features over time)
         self.pos_encoder = nn.Parameter(torch.randn(1, seq_len, d_model) * 0.02)
-
-        # Transformer Encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=nhead,
-            dim_feedforward=d_model * 4,
-            dropout=dropout,
-            batch_first=True,
-            activation="gelu",
+            d_model=d_model, nhead=nhead, dim_feedforward=d_model*4, 
+            dropout=dropout, batch_first=True, activation='gelu'
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers)
-
-        # Output GRN
-        self.output_grn = GatedResidualNetwork(d_model, d_model, d_model, dropout)
-
-        # Prediction Head
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        # 3. Gating / Combination
+        # Concatenate: [Target_Time_Context, Static_Context] -> Regressor
         self.output_head = nn.Sequential(
-            nn.Linear(d_model, d_model // 2),
+            nn.Linear(d_model + d_model, d_model), 
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model // 2, pred_len),
+            nn.Linear(d_model, d_model // 2),
+            nn.GELU(),
+            nn.Linear(d_model // 2, pred_len)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x_dyn, x_stat, x_country):
         """
-        Forward pass for temperature forecasting.
-
         Args:
-            x: Input tensor of shape (batch, seq_len, input_dim)
-
-        Returns:
-            Predictions of shape (batch, pred_len)
+            x_dyn: Dynamic features [Batch, Seq, Dyn_Dim]
+            x_stat: Static features [Batch, Stat_Dim]
+            x_country: Country IDs [Batch]
         """
-        # Feature projection and filtering
-        x = self.input_grn(x)  # (batch, seq_len, d_model)
-
-        # Add positional encoding
-        x = x + self.pos_encoder
-
-        # Transformer encoding
-        x = self.transformer(x)
-
-        # Take last timestep and refine
-        x = self.output_grn(x[:, -1, :])  # (batch, d_model)
-
-        # Project to prediction length
-        return self.output_head(x)  # (batch, pred_len)
-
-    @classmethod
-    def from_checkpoint(cls, checkpoint_path: str, device: str = "cpu") -> "V3ClimateTransformer":
-        """
-        Load model from checkpoint.
-
-        Args:
-            checkpoint_path: Path to .pt file
-            device: Device to load model on
-
-        Returns:
-            Loaded model in eval mode
-        """
-        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-
-        model = cls(
-            input_dim=checkpoint["input_dim"],
-            d_model=checkpoint["d_model"],
-            nhead=checkpoint["nhead"],
-            num_layers=checkpoint["num_layers"],
-            dropout=checkpoint["dropout"],
-            seq_len=checkpoint.get("seq_len", 14),
-            pred_len=checkpoint.get("pred_len", 7),
-        )
-
-        model.load_state_dict(checkpoint["model_state_dict"])
-        model.eval()
-
-        return model
+        # A. Process Static Context
+        c_emb = self.country_emb(x_country)        # [Batch, 16]
+        stat_in = torch.cat([x_stat, c_emb], dim=1) # [Batch, Stat_Dim + 16]
+        stat_context = self.stat_encoder(stat_in)   # [Batch, d_model]
+        
+        # B. Process Dynamic Sequence
+        dyn_emb = self.dyn_encoder(x_dyn)           # [Batch, Seq, d_model]
+        dyn_emb = dyn_emb + self.pos_encoder        # Add Position info
+        
+        # C. Transformer Pass
+        time_context = self.transformer(dyn_emb)    # [Batch, Seq, d_model]
+        
+        # Take hidden state of the last time step
+        last_step = time_context[:, -1, :]          # [Batch, d_model]
+        
+        # D. Combine & Predict
+        # Combine temporal context with static geographic context
+        combined = torch.cat([last_step, stat_context], dim=1) # [Batch, d_model*2]
+        return self.output_head(combined)

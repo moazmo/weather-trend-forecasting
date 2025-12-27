@@ -24,23 +24,25 @@ class V3Preprocessor:
         - Missing value imputation
     """
 
-    def __init__(self, scaler_path: Path | None = None):
+    def __init__(self, scaler_path: Path | None = None, require_scaler: bool = False):
         """
         Initialize preprocessor.
 
         Args:
             scaler_path: Path to fitted StandardScaler. If None, uses default.
+            require_scaler: If True, raises error if scaler not found. If False, warns and continues.
         """
         self.scaler_path = scaler_path or SCALER_PATH
         self.scaler = None
-        self._load_scaler()
+        self._load_scaler(require_scaler)
 
-    def _load_scaler(self) -> None:
+    def _load_scaler(self, require: bool = False) -> None:
         """Load fitted scaler from disk."""
         if self.scaler_path.exists():
             self.scaler = joblib.load(self.scaler_path)
-        else:
+        elif require:
             raise FileNotFoundError(f"Scaler not found at {self.scaler_path}")
+        # If not required and not found, scaler remains None (V3.1 uses separate scalers)
 
     @staticmethod
     def compute_cyclical_features(date: datetime) -> dict[str, float]:
@@ -203,6 +205,41 @@ class V3Preprocessor:
             sequence = sequence.reshape(original_shape)
 
         return sequence.astype(np.float32)
+
+    def build_raw_sequence(
+        self,
+        latitude: float,
+        longitude: float,
+        start_date: datetime,
+        weather_history: list[dict[str, float]],
+        seq_len: int = V3Config.SEQ_LEN,
+    ) -> list[dict[str, float]]:
+        """
+        Build raw weather sequence for V3.1 Hybrid Model.
+        Returns unscalled list of dicts for flexible feature extraction.
+        """
+        # Ensure we have enough history
+        if len(weather_history) < seq_len:
+            padding = seq_len - len(weather_history)
+            weather_history = [DEFAULT_WEATHER_VALUES.copy()] * padding + weather_history
+            
+        sequence = []
+        for i in range(seq_len):
+            # We assume history is chronological up to start_date
+            # But actually `weather_history` usually represents the *past* leading up to today.
+            # So index -1 is yesterday, -2 is day before.
+            # We just return the history enriched with defaults.
+            
+            day_data = weather_history[i].copy()
+            
+            # Fill defaults
+            for k, v in DEFAULT_WEATHER_VALUES.items():
+                if k not in day_data:
+                    day_data[k] = v
+                    
+            sequence.append(day_data)
+            
+        return sequence
 
     def create_sequences_from_df(
         self,

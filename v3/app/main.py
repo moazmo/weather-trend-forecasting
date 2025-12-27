@@ -26,9 +26,9 @@ from v3.src import V3Config, V3Forecaster
 # =============================================================================
 
 app = FastAPI(
-    title="V3 Climate-Aware Forecaster",
-    description="7-day temperature forecasting with What-If scenario support",
-    version="3.0.0",
+    title="V3 Climate-Aware Forecaster (EXPERIMENTAL)",
+    description="⚠️ EXPERIMENTAL - 7-day temperature forecasting with Hybrid Architecture. Use V2 for production.",
+    version="3.1.0-experimental",
 )
 
 # CORS for development
@@ -75,6 +75,7 @@ class ForecastRequest(BaseModel):
 
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    country: str = "Egypt"  # Default for backward compatibility
     start_date: str | None = None  # YYYY-MM-DD, defaults to today
     weather_scenario: WeatherInput | None = None  # What-if scenario
 
@@ -106,7 +107,7 @@ async def root():
     ui_path = Path(__file__).parent / "static" / "index.html"
     if ui_path.exists():
         return FileResponse(ui_path)
-    return HTMLResponse("<h1>V3 Weather Forecaster API</h1><p>UI not found. Use /docs for API.</p>")
+    return HTMLResponse("<h1>V3.1 Weather Forecaster API</h1><p>UI not found. Use /docs for API.</p>")
 
 
 @app.get("/health")
@@ -116,6 +117,7 @@ async def health_check():
         "status": "healthy",
         "model_loaded": forecaster is not None,
         "timestamp": datetime.now().isoformat(),
+        "version": "3.1.0 (Hybrid)"
     }
 
 
@@ -132,7 +134,7 @@ async def get_model_info():
 @app.post("/api/forecast", response_model=ForecastResponse)
 async def create_forecast(request: ForecastRequest):
     """
-    Generate 7-day temperature forecast.
+    Generate 7-day temperature forecast using V3.1 Hybrid Model.
 
     Supports "what-if" scenarios by providing custom weather parameters.
     """
@@ -155,6 +157,7 @@ async def create_forecast(request: ForecastRequest):
         result = fc.predict(
             latitude=request.latitude,
             longitude=request.longitude,
+            country=request.country,
             start_date=start_date,
             weather_history=weather_history,
         )
@@ -201,6 +204,74 @@ async def get_climate_zones():
             {"name": "Polar", "latitude_range": "66.5° - 90°"},
         ]
     }
+
+
+# =============================================================================
+# Historical Comparison (Predicted vs Actual)
+# =============================================================================
+
+import httpx  # For async HTTP requests
+
+@app.get("/api/historical")
+async def get_historical_comparison(
+    lat: float = Query(..., ge=-90, le=90, description="Latitude"),
+    lon: float = Query(..., ge=-180, le=180, description="Longitude"),
+    country: str = Query("Egypt", description="Country name"),
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
+):
+    """
+    Compare model predictions against actual historical temperatures.
+    
+    Fetches actual temps from Open-Meteo Archive API, then runs the model
+    to produce predictions for the same date range.
+    """
+    try:
+        fc = get_forecaster()
+        
+        # 1. Fetch Actual Historical Temperatures from Open-Meteo
+        open_meteo_url = (
+            f"https://archive-api.open-meteo.com/v1/archive?"
+            f"latitude={lat}&longitude={lon}"
+            f"&start_date={start_date}&end_date={end_date}"
+            f"&daily=temperature_2m_mean&timezone=auto"
+        )
+        
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(open_meteo_url)
+            resp.raise_for_status()
+            data = resp.json()
+        
+        dates = data.get("daily", {}).get("time", [])
+        actuals = data.get("daily", {}).get("temperature_2m_mean", [])
+        
+        if not dates or not actuals:
+            raise HTTPException(status_code=404, detail="No historical data found for this location/range.")
+        
+        # 2. Run Model Predictions for each date in the range
+        # Note: The model predicts 7 days ahead. For comparison, we'll use the Day 1 prediction.
+        predictions = []
+        for date_str in dates:
+            result = fc.predict(
+                latitude=lat,
+                longitude=lon,
+                country=country,
+                start_date=date_str
+            )
+            # Take the first forecast day (Day 0 = start_date itself)
+            predictions.append(result["forecast"][0]["temperature"])
+        
+        return {
+            "dates": dates,
+            "actual": actuals,
+            "predicted": predictions,
+            "location": {"latitude": lat, "longitude": lon, "country": country},
+        }
+        
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Open-Meteo API error: {e.response.text}") from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================

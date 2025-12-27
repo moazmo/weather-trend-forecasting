@@ -77,18 +77,29 @@
             vertical-align: middle;
         }
 
-        /* Main Layout */
+        /* Main Layout - Left/Right Split */
         .main {
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 0 auto;
-            padding: 1.5rem;
+            padding: 1rem;
             display: grid;
-            grid-template-columns: 1fr 420px;
-            gap: 1.5rem;
+            grid-template-columns: 1fr 380px;
+            gap: 1rem;
+            height: calc(100vh - 100px);
+            overflow: hidden;
         }
 
         @media (max-width: 1200px) {
-            .main { grid-template-columns: 1fr; }
+            .main { grid-template-columns: 1fr; height: auto; overflow: auto; }
+        }
+
+        /* Left Panel (Map + Charts) */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            max-height: 100%;
         }
 
         /* Map Section */
@@ -97,10 +108,11 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         #map {
-            height: 500px;
+            height: 300px;
             width: 100%;
         }
 
@@ -288,10 +300,18 @@
             transform: none;
         }
 
-        /* Chart */
-        #chart {
-            height: 180px;
+        /* Chart - Fixed Overflow */
+        #chart, #hist-chart {
+            height: 200px;
             border-radius: 10px;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         /* Forecast Grid */
@@ -391,25 +411,63 @@
     </style>
 </head>
 <body>
+    <!-- Experimental Warning Banner -->
+    <div id="exp-banner" style="background: linear-gradient(90deg, #f59e0b, #ef4444); color: white; text-align: center; padding: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+        ⚠️ <strong>EXPERIMENTAL</strong> - This V3 version is under active development. For production use, please use <a href="../v2/" style="color: white; text-decoration: underline;">V2 Stable</a>.
+        <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: white; cursor: pointer; margin-left: 1rem; font-size: 1.2rem;">×</button>
+    </div>
+    
     <header class="header">
-        <h1>🌍 Climate Forecaster <span class="version-badge">V3</span></h1>
+        <h1>🌍 Climate Forecaster <span class="version-badge" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">V3 EXPERIMENTAL</span></h1>
         <p class="subtitle">Click on the map or search a location • What-If Scenario Support • 7-Day Forecast</p>
     </header>
 
     <main class="main">
-        <!-- Map Section -->
-        <div class="map-section">
-            <div id="map"></div>
-            <p class="map-hint">📍 Click anywhere on the map to select a location, or use the search panel</p>
+        <!-- LEFT PANEL: Map + Results -->
+        <div class="left-panel">
+            <!-- Map Section -->
+            <div class="map-section">
+                <div id="map"></div>
+                <p class="map-hint">📍 Click anywhere on the map to select a location</p>
+            </div>
+
+            <!-- Results (moved from sidebar) -->
+            <div id="results" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📈</span>
+                        <h2 class="card-title">7-Day Temperature Forecast</h2>
+                    </div>
+                    <div class="chart-container">
+                        <div id="chart"></div>
+                    </div>
+                    <div class="forecast-scroll" id="forecast-days"></div>
+                    <div class="stats-row" id="stats"></div>
+                </div>
+            </div>
+
+            <!-- Historical Comparison Results -->
+            <div id="historical-results" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📊</span>
+                        <h2 class="card-title">Predicted vs Actual</h2>
+                    </div>
+                    <div class="chart-container">
+                        <div id="hist-chart"></div>
+                    </div>
+                    <div class="stats-row" id="hist-stats"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- Sidebar -->
+        <!-- RIGHT SIDEBAR: Controls -->
         <div class="sidebar">
             <!-- Search -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-icon">🔍</span>
-                    <h2 class="card-title">Quick Search</h2>
+                    <h2 class="card-title">Location</h2>
                 </div>
                 <div class="input-row">
                     <div class="input-group">
@@ -420,6 +478,18 @@
                         <label class="input-label">Longitude</label>
                         <input type="number" id="longitude" placeholder="-180 to 180" step="0.01" min="-180" max="180">
                     </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Country</label>
+                    <input type="text" id="country" placeholder="e.g. Egypt" list="country-list">
+                    <datalist id="country-list">
+                        <option value="Egypt">
+                        <option value="Saudi Arabia">
+                        <option value="United Arab Emirates">
+                        <option value="Morocco">
+                        <option value="USA">
+                        <option value="China">
+                    </datalist>
                 </div>
                 <div class="input-group">
                     <label class="input-label">Start Date</label>
@@ -439,24 +509,29 @@
                         <div class="info-value" id="display-coords">--</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Climate Zone</div>
+                        <div class="info-label">Country</div>
+                        <div class="info-value" id="display-country">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Climate</div>
                         <div class="info-value"><span class="climate-badge" id="display-climate">--</span></div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Hemisphere</div>
                         <div class="info-value" id="display-hemisphere">--</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Model</div>
-                        <div class="info-value">V3 Transformer</div>
-                    </div>
                 </div>
             </div>
+
+            <!-- Forecast Button -->
+            <button class="btn-primary" id="forecast-btn" onclick="getForecast()">
+                <span>🚀</span> Generate Forecast
+            </button>
 
             <!-- What-If Scenario -->
             <div class="collapsible" id="whatif-section">
                 <div class="collapsible-header" onclick="toggleCollapsible('whatif-section')">
-                    <span>🔮 What-If Scenario (Optional)</span>
+                    <span>🔮 What-If Scenario</span>
                     <span class="collapsible-toggle">▼</span>
                 </div>
                 <div class="collapsible-content">
@@ -481,42 +556,32 @@
                                 <input type="number" id="cloud" placeholder="0-100" min="0" max="100">
                             </div>
                         </div>
-                        <div class="input-row">
-                            <div class="input-group">
-                                <label class="input-label">UV Index</label>
-                                <input type="number" id="uv" placeholder="0-15" min="0" max="15" step="0.1">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Precipitation (mm)</label>
-                                <input type="number" id="precip" placeholder="0+" min="0" step="0.1">
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Forecast Button -->
-            <button class="btn-primary" id="forecast-btn" onclick="getForecast()">
-                <span>🚀</span> Generate 7-Day Forecast
-            </button>
-
-            <!-- Results -->
-            <div id="results" class="hidden">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-icon">📈</span>
-                        <h2 class="card-title">Temperature Trend</h2>
-                    </div>
-                    <div id="chart"></div>
-                    <div class="stats-row" id="stats"></div>
+            <!-- Historical Comparison -->
+            <div class="collapsible" id="historical-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('historical-section')">
+                    <span>📊 Predicted vs Actual</span>
+                    <span class="collapsible-toggle">▼</span>
                 </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-icon">📅</span>
-                        <h2 class="card-title">Daily Forecast</h2>
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label class="input-label">From</label>
+                                <input type="date" id="hist-start">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">To</label>
+                                <input type="date" id="hist-end">
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="hist-btn" onclick="getHistorical()" style="margin-top: 0.5rem; background: var(--gradient-cyan);">
+                            <span>📊</span> Compare
+                        </button>
                     </div>
-                    <div class="forecast-scroll" id="forecast-days"></div>
                 </div>
             </div>
         </div>
@@ -542,10 +607,11 @@
             selectLocation(lat, lng);
         });
 
-        function selectLocation(lat, lon) {
+        function selectLocation(lat, lon, country='Egypt') {
             // Update inputs
             $('latitude').value = lat.toFixed(4);
             $('longitude').value = lon.toFixed(4);
+            $('country').value = country;
 
             // Update/create marker
             if (marker) map.removeLayer(marker);
@@ -559,12 +625,13 @@
             }).addTo(map);
 
             // Update display
-            updateLocationDisplay(lat, lon);
+            updateLocationDisplay(lat, lon, country);
         }
 
-        function updateLocationDisplay(lat, lon) {
+        function updateLocationDisplay(lat, lon, country) {
             $('display-coords').textContent = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
             $('display-hemisphere').textContent = lat >= 0 ? 'Northern' : 'Southern';
+            $('display-country').textContent = country || 'Unknown';
 
             // Climate zone
             const absLat = Math.abs(lat);
@@ -579,15 +646,19 @@
         // Manual coordinate input
         $('latitude').addEventListener('change', syncFromInputs);
         $('longitude').addEventListener('change', syncFromInputs);
+        $('country').addEventListener('change', () => {
+             updateLocationDisplay(parseFloat($('latitude').value), parseFloat($('longitude').value), $('country').value);
+        });
 
         function syncFromInputs() {
             const lat = parseFloat($('latitude').value);
             const lon = parseFloat($('longitude').value);
+            const country = $('country').value;
             if (!isNaN(lat) && !isNaN(lon)) {
                 if (marker) map.removeLayer(marker);
                 marker = L.marker([lat, lon]).addTo(map);
                 map.setView([lat, lon], 5);
-                updateLocationDisplay(lat, lon);
+                updateLocationDisplay(lat, lon, country);
             }
         }
 
@@ -599,6 +670,7 @@
             const btn = $('forecast-btn');
             const lat = parseFloat($('latitude').value);
             const lon = parseFloat($('longitude').value);
+            const country = $('country').value || 'Egypt';
             const date = $('start-date').value;
 
             if (isNaN(lat) || isNaN(lon)) {
@@ -610,18 +682,17 @@
             btn.innerHTML = '<div class="spinner"></div> Loading...';
 
             // Build request
-            const request = { latitude: lat, longitude: lon, start_date: date };
+            const request = { latitude: lat, longitude: lon, country: country, start_date: date };
 
-            // Add what-if scenario
+            // Add what-if scenario (only for fields that exist)
             const scenario = {};
-            ['humidity', 'pressure', 'wind', 'cloud', 'uv', 'precip'].forEach(id => {
-                const val = $(id).value;
-                if (val) {
+            const scenarioFields = ['humidity', 'pressure', 'wind', 'cloud'];
+            scenarioFields.forEach(id => {
+                const el = $(id);
+                if (el && el.value) {
                     const key = id === 'pressure' ? 'pressure_mb' :
-                                id === 'wind' ? 'wind_kph' :
-                                id === 'uv' ? 'uv_index' :
-                                id === 'precip' ? 'precip_mm' : id;
-                    scenario[key] = parseFloat(val);
+                                id === 'wind' ? 'wind_kph' : id;
+                    scenario[key] = parseFloat(el.value);
                 }
             });
             if (Object.keys(scenario).length > 0) request.weather_scenario = scenario;
@@ -641,7 +712,7 @@
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<span>🚀</span> Generate 7-Day Forecast';
+            btn.innerHTML = '<span>🚀</span> Generate Forecast';
         }
 
         function renderResults(data) {
@@ -696,6 +767,110 @@
         // Pre-select Egypt as default
         selectLocation(30.0, 31.2);
         map.setView([30.0, 31.2], 4);
+
+        // Set default historical date range (last 30 days ending yesterday)
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const thirtyDaysAgo = new Date(yesterday);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        $('hist-end').value = yesterday.toISOString().split('T')[0];
+        $('hist-start').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+        // Historical Comparison Feature
+        async function getHistorical() {
+            const btn = $('hist-btn');
+            const lat = parseFloat($('latitude').value);
+            const lon = parseFloat($('longitude').value);
+            const country = $('country').value || 'Egypt';
+            const startDate = $('hist-start').value;
+            const endDate = $('hist-end').value;
+
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please select a location first');
+                return;
+            }
+            if (!startDate || !endDate) {
+                alert('Please select a date range');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Loading...';
+
+            try {
+                const url = `/api/historical?lat=${lat}&lon=${lon}&country=${encodeURIComponent(country)}&start_date=${startDate}&end_date=${endDate}`;
+                const res = await fetch(url);
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Request failed');
+                }
+                const data = await res.json();
+                renderHistorical(data);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<span>📊</span> Compare';
+        }
+
+        function renderHistorical(data) {
+            const { dates, actual, predicted } = data;
+
+            // Calculate MAE
+            let totalError = 0;
+            for (let i = 0; i < actual.length; i++) {
+                if (actual[i] !== null && predicted[i] !== null) {
+                    totalError += Math.abs(actual[i] - predicted[i]);
+                }
+            }
+            const mae = (totalError / actual.length).toFixed(2);
+
+            // Plotly chart with two traces
+            Plotly.newPlot('hist-chart', [
+                {
+                    x: dates,
+                    y: actual,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Actual',
+                    line: { color: '#10b981', width: 2 },
+                    marker: { size: 5 }
+                },
+                {
+                    x: dates,
+                    y: predicted,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Predicted',
+                    line: { color: '#8b5cf6', width: 2, dash: 'dot' },
+                    marker: { size: 5 }
+                }
+            ], {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#94a3b8', size: 10 },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.05)', tickangle: -45 },
+                yaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: '°C' },
+                margin: { t: 30, r: 20, b: 60, l: 40 },
+                legend: { orientation: 'h', y: 1.1 }
+            }, { responsive: true, displayModeBar: false });
+
+            // Stats
+            const avgActual = (actual.reduce((a,b) => a + (b || 0), 0) / actual.length).toFixed(1);
+            const avgPred = (predicted.reduce((a,b) => a + b, 0) / predicted.length).toFixed(1);
+
+            $('hist-stats').innerHTML = `
+                <div class="stat"><div class="stat-value">${mae}°</div><div class="stat-label">MAE</div></div>
+                <div class="stat"><div class="stat-value">${avgActual}°</div><div class="stat-label">Avg Actual</div></div>
+                <div class="stat"><div class="stat-value">${avgPred}°</div><div class="stat-label">Avg Pred</div></div>
+                <div class="stat"><div class="stat-value">${dates.length}</div><div class="stat-label">Days</div></div>
+            `;
+
+            $('historical-results').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>

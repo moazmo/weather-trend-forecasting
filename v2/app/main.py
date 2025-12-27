@@ -303,7 +303,7 @@ def predict_forecast(lat: float, lon: float, start_date: str) -> tuple:
 # ============================================
 # FastAPI App
 # ============================================
-app = FastAPI(title="Weather Trend Forecasting V4", version="4.0.0-advanced")
+app = FastAPI(title="Weather Trend Forecasting V2 (STABLE)", version="2.0.0-stable", description="✅ STABLE - Production-ready weather forecasting API. Recommended for production use.")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 

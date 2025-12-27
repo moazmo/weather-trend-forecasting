@@ -32,11 +32,16 @@ A production-grade machine learning system for precision global weather forecast
 
 ## ✨ Key Features
 
-### 🧠 V3 Climate-Aware Transformer (Latest)
-- **929K parameters** with Gated Residual Networks
+### 🧠 V2 Advanced Transformer (Stable - Recommended)
+- **Production-ready** with stable performance
+- **2.00°C MAE** - Best tested accuracy
+- Clean FastAPI interface
+
+### 🧪 V3 Climate-Aware Transformer (Experimental)
+- **929K parameters** with Hybrid Static-Dynamic Architecture + Country Embeddings
 - **25 input features** including air quality, geography, and cyclical time encoding
 - **14-day input → 7-day forecast** sequence-to-sequence architecture
-- **What-If Scenario Support** for climate simulations
+- ⚠️ **Under active development** - Use V2 for production
 
 ### 🔧 Full MLOps Pipeline
 - **MLflow** for experiment tracking and model registry
@@ -58,14 +63,15 @@ A production-grade machine learning system for precision global weather forecast
 ### Option 1: Docker (Recommended)
 
 ```bash
-# V3 Application
-cd v3
-docker-compose up v3-api
+# V2 Stable Application (Recommended)
+cd v2
+docker-compose up v2-api
 # Open http://localhost:8000
 
-# With MLflow UI
-docker-compose up v3-api mlflow
-# MLflow UI at http://localhost:5000
+# V3 Experimental (Development Only)
+cd v3
+docker-compose up v3-api
+# Open http://localhost:8001
 ```
 
 ### Option 2: Local Installation
@@ -78,9 +84,13 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Run V3 Application
-uvicorn v3.app.main:app --port 8000
+# Run V2 Stable Application (Recommended)
+uvicorn v2.app.main:app --port 8000
 # Open http://localhost:8000
+
+# Run V3 Experimental (Development Only)
+uvicorn v3.app.main:app --port 8001
+# Open http://localhost:8001
 ```
 
 ---
@@ -116,8 +126,8 @@ Input Sequence (14 days × 25 features)
 
 | Model | Architecture | MAE | Status |
 |-------|-------------|-----|--------|
-| **V3** | Climate-Aware Transformer + GRN | **8.46°C** | 🟢 Active |
-| V2 | Advanced Transformer | 2.00°C | 🟡 Legacy |
+| **V2** | Advanced Transformer | **2.00°C** | 🟢 **Stable (Recommended)** |
+| V3 | Hybrid Climate-Aware Transformer | ~6.8°C | 🟡 Experimental |
 | V1 | Basic Transformer | ~4.50°C | ⚪ Retired |
 
 ---
