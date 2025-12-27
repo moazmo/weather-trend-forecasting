@@ -2,8 +2,8 @@
 
 > **PM Accelerator Mission**: "By making industry-leading tools and education available to individuals from all backgrounds, we level the playing field for future PM leaders."
 
+[![GitHub Pages](https://img.shields.io/badge/View%20Interactive-GitHub%20Pages-blue.svg)](https://moazmo.github.io/weather-trend-forecasting/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/moazmo/weather-trend-forecasting/blob/main/presentation/02_EDA_Analysis.ipynb)
-[![nbviewer](https://img.shields.io/badge/render-nbviewer-orange.svg)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/tree/main/presentation/)
 
 ---
 
@@ -15,13 +15,13 @@ This presentation takes you through the complete journey of building a **product
 
 ## 📚 Notebooks
 
-| # | Notebook | Description | View |
-|---|----------|-------------|------|
-| 1️⃣ | [**Project Overview**](01_Project_Overview.ipynb) | Mission, goals, dataset, and key results | [![nbviewer](https://img.shields.io/badge/view-nbviewer-orange)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/blob/main/presentation/01_Project_Overview.ipynb) |
-| 2️⃣ | [**EDA Analysis**](02_EDA_Analysis.ipynb) | Data cleaning, visualizations, anomaly detection | [![nbviewer](https://img.shields.io/badge/view-nbviewer-orange)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/blob/main/presentation/02_EDA_Analysis.ipynb) |
-| 3️⃣ | [**Model Evolution**](03_Model_Evolution.ipynb) | V1→V4 architecture journey, training, evaluation | [![nbviewer](https://img.shields.io/badge/view-nbviewer-orange)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/blob/main/presentation/03_Model_Evolution.ipynb) |
-| 4️⃣ | [**Climate & Spatial Analysis**](04_Climate_Spatial_Analysis.ipynb) | Long-term trends, geographic patterns, feature importance | [![nbviewer](https://img.shields.io/badge/view-nbviewer-orange)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/blob/HEAD/presentation/04_Climate_Spatial_Analysis.ipynb) |
-| 5️⃣ | [**Environmental Impact**](05_Environmental_Impact.ipynb) | Air quality analysis, pollution correlations | [![nbviewer](https://img.shields.io/badge/view-nbviewer-orange)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/blob/HEAD/presentation/05_Environmental_Impact.ipynb) |
+| # | Notebook | Description | Interactive |
+|---|----------|-------------|-------------|
+| 1️⃣ | [**Project Overview**](01_Project_Overview.ipynb) | Mission, goals, dataset, and key results | [View →](https://moazmo.github.io/weather-trend-forecasting/01_Project_Overview.html) |
+| 2️⃣ | [**EDA Analysis**](02_EDA_Analysis.ipynb) | Data cleaning, visualizations, anomaly detection | [View →](https://moazmo.github.io/weather-trend-forecasting/02_EDA_Analysis.html) |
+| 3️⃣ | [**Model Evolution**](03_Model_Evolution.ipynb) | V1→V4 architecture journey, training, evaluation | [View →](https://moazmo.github.io/weather-trend-forecasting/03_Model_Evolution.html) |
+| 4️⃣ | [**Climate & Spatial Analysis**](04_Climate_Spatial_Analysis.ipynb) | Long-term trends, geographic patterns, feature importance | [View →](https://moazmo.github.io/weather-trend-forecasting/04_Climate_Spatial_Analysis.html) |
+| 5️⃣ | [**Environmental Impact**](05_Environmental_Impact.ipynb) | Air quality analysis, pollution correlations | [View →](https://moazmo.github.io/weather-trend-forecasting/05_Environmental_Impact.html) |
 
 ---
 

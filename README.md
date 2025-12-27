@@ -2,13 +2,13 @@
 
 > **PM Accelerator Mission**: "By making industry-leading tools and education available to individuals from all backgrounds, we level the playing field for future PM leaders. This is the PM Accelerator motto, as we grant aspiring and experienced PMs what they need most – Access. We introduce you to industry leaders, surround you with the right PM ecosystem, and discover the new world of AI product management skills."
 
-> 📊 **[View Full Project Presentation →](presentation/)** | Comprehensive notebooks with EDA, Model Evolution, and Visualizations
+> 📊 **[View Interactive Presentation →](https://moazmo.github.io/weather-trend-forecasting/)** | Full interactive charts on GitHub Pages
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
-[![nbviewer](https://img.shields.io/badge/render-nbviewer-orange.svg)](https://nbviewer.org/github/moazmo/weather-trend-forecasting/tree/main/presentation/)
+[![GitHub Pages](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://moazmo.github.io/weather-trend-forecasting/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/moazmo/weather-trend-forecasting/blob/main/presentation/02_EDA_Analysis.ipynb)
 
 A production-grade machine learning system for precision global weather forecasting. Powered by an **Advanced Transformer with Gated Residual Networks (GRN)**, this system achieves a Mean Absolute Error (MAE) of **2.00°C** across 180+ countries.

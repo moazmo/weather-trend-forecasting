@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'book/**'
+      - 'presentation/**'
       - '.github/workflows/deploy-book.yml'
   workflow_dispatch:
 
@@ -35,19 +35,19 @@ jobs:
           pip install plotly nbformat
       
       - name: Build the book
-        working-directory: book
+        working-directory: presentation
         run: |
           jb build .
       
       - name: List build output
         run: |
-          ls -la book/_build/ || echo "Build failed"
-          ls -la book/_build/html/ || echo "HTML not generated"
+          ls -la presentation/_build/ || echo "Build failed"
+          ls -la presentation/_build/html/ || echo "HTML not generated"
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: book/_build/html
+          path: presentation/_build/html
 
   deploy:
     environment:

@@ -28,7 +28,7 @@ html:
 # Repository settings
 repository:
   url: https://github.com/moazmo/weather-trend-forecasting
-  path_to_book: book
+  path_to_book: presentation
   branch: main
 
 # Launch button settings
