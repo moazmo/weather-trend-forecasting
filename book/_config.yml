@@ -5,7 +5,7 @@ logo: images/logo.png
 
 # Force re-execution of notebooks on each build
 execute:
-  execute_notebooks: "off" # Don't execute, use existing outputs
+  execute_notebooks: "off"  # Don't execute, use existing outputs
 
 # Parse and render settings
 parse:
@@ -43,3 +43,6 @@ sphinx:
   config:
     html_theme_options:
       navigation_with_keys: false
+    # Add Plotly.js for interactive charts
+    html_js_files:
+      - https://cdn.plot.ly/plotly-2.27.0.min.js
