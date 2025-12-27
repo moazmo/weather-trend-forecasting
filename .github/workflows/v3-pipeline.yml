@@ -1,0 +1,134 @@
+# V3 Full Pipeline Workflow
+# Runs complete DVC pipeline on schedule or manual trigger
+
+name: V3 Full Pipeline
+
+on:
+  # Weekly full pipeline (Monday 3 AM UTC)
+  schedule:
+    - cron: '0 3 * * 1'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      run_training:
+        description: 'Run training stage'
+        required: false
+        default: true
+        type: boolean
+      run_evaluation:
+        description: 'Run evaluation stage'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  pipeline:
+    name: Run DVC Pipeline
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for DVC
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install dvc mlflow
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install pandas numpy scikit-learn joblib fastapi uvicorn
+
+      - name: Configure DVC
+        run: |
+          dvc config core.autostage true
+
+      - name: Pull DVC data
+        continue-on-error: true
+        run: |
+          dvc pull || echo "No remote configured, using local data"
+
+      - name: Run prepare_data stage
+        run: |
+          dvc repro prepare_data
+
+      - name: Run train stage
+        if: ${{ github.event.inputs.run_training != 'false' }}
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: |
+          dvc repro train
+
+      - name: Run evaluate stage
+        if: ${{ github.event.inputs.run_evaluation != 'false' }}
+        run: |
+          dvc repro evaluate
+
+      - name: Show metrics
+        run: |
+          echo "=== Data Stats ==="
+          cat data/processed/data_stats.json || echo "Not found"
+          echo ""
+          echo "=== Evaluation Results ==="
+          cat v3/models/evaluation_results.json || echo "Not found"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-pipeline-outputs-${{ github.run_id }}
+          path: |
+            v3/models/
+            data/processed/data_stats.json
+          retention-days: 30
+
+      - name: DVC push (if remote configured)
+        continue-on-error: true
+        run: |
+          dvc push || echo "No remote configured"
+
+  # Quality gate check
+  quality_check:
+    name: Model Quality Gate
+    runs-on: ubuntu-latest
+    needs: pipeline
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: v3-pipeline-outputs-${{ github.run_id }}
+
+      - name: Check model quality
+        run: |
+          python -c "
+          import json
+          
+          try:
+              with open('v3/models/evaluation_results.json') as f:
+                  metrics = json.load(f)
+              
+              mae = metrics.get('test_mae', 999)
+              print(f'Test MAE: {mae}°C')
+              
+              # Quality gates
+              if mae > 12:
+                  print('❌ FAILED: MAE exceeds 12°C threshold')
+                  exit(1)
+              elif mae > 10:
+                  print('⚠️ WARNING: MAE exceeds 10°C')
+              else:
+                  print('✅ PASSED: Model quality acceptable')
+                  
+          except FileNotFoundError:
+              print('⚠️ No metrics file found')
+          "

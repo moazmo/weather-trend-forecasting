@@ -1,0 +1,135 @@
+# V3 Training Workflow
+# Scheduled and manual training with MLflow tracking
+
+name: V3 Train Model
+
+on:
+  # Weekly scheduled training (Sunday 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * 0'
+  
+  # Manual trigger with parameters
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: 'Number of training epochs'
+        required: false
+        default: '50'
+        type: string
+      d_model:
+        description: 'Model hidden dimension'
+        required: false
+        default: '128'
+        type: string
+      learning_rate:
+        description: 'Learning rate'
+        required: false
+        default: '0.001'
+        type: string
+      run_name:
+        description: 'MLflow run name (optional)'
+        required: false
+        type: string
+
+jobs:
+  train:
+    name: Train V3 Model
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true  # For large model files
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install mlflow pandas numpy scikit-learn joblib
+
+      - name: Pull DVC data (if configured)
+        continue-on-error: true
+        run: |
+          pip install dvc
+          dvc pull data/processed/weather_v3_ready.csv || echo "DVC not configured, using local data"
+
+      - name: Train model
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI || 'file:./mlruns' }}
+        run: |
+          python -m v3.mlflow.train \
+            --experiment "v3-climate-transformer-ci" \
+            --epochs ${{ github.event.inputs.epochs || '50' }} \
+            --d-model ${{ github.event.inputs.d_model || '128' }} \
+            --lr ${{ github.event.inputs.learning_rate || '0.001' }} \
+            ${{ github.event.inputs.run_name && format('--run-name {0}', github.event.inputs.run_name) || '' }}
+
+      - name: Upload model artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-model-${{ github.run_id }}
+          path: |
+            v3/models/v3_climate_transformer.pt
+            v3/models/v3_scaler.joblib
+          retention-days: 30
+
+      - name: Upload MLflow logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-logs-${{ github.run_id }}
+          path: mlruns/
+          retention-days: 7
+
+  # Optional: Compare with production model
+  evaluate:
+    name: Evaluate Model
+    runs-on: ubuntu-latest
+    needs: train
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download trained model
+        uses: actions/download-artifact@v4
+        with:
+          name: v3-model-${{ github.run_id }}
+          path: v3/models/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install pandas numpy scikit-learn joblib pytest
+
+      - name: Run model tests
+        run: |
+          python -m pytest v3/tests/test_model.py v3/tests/test_inference.py -v
+
+      - name: Model quality check
+        run: |
+          python -c "
+          import torch
+          checkpoint = torch.load('v3/models/v3_climate_transformer.pt', weights_only=False)
+          test_mae = checkpoint.get('test_mae', 999)
+          print(f'Test MAE: {test_mae:.2f}°C')
+          
+          # Quality gate: MAE should be < 10°C
+          if test_mae > 10:
+              print('⚠️ WARNING: Model MAE exceeds threshold')
+              exit(1)
+          else:
+              print('✅ Model quality check passed')
+          "

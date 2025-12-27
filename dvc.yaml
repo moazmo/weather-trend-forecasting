@@ -1,0 +1,52 @@
+# DVC Pipeline for V3 Weather Forecasting
+# Defines the complete ML pipeline from data to model
+
+stages:
+  # =============================================================================
+  # Stage 1: Data Preparation
+  # =============================================================================
+  prepare_data:
+    cmd: python v3/scripts/prepare_data.py
+    deps:
+      - data/raw/GlobalWeatherRepository.csv
+      - v3/scripts/prepare_data.py
+    outs:
+      - data/processed/weather_v3_ready.csv
+    metrics:
+      - data/processed/data_stats.json:
+          cache: false
+
+  # =============================================================================
+  # Stage 2: Train Model
+  # =============================================================================
+  train:
+    cmd: python -m v3.mlflow.train --experiment v3-dvc-pipeline --epochs 50
+    deps:
+      - data/processed/weather_v3_ready.csv
+      - v3/src/model.py
+      - v3/src/config.py
+      - v3/mlflow/train.py
+    outs:
+      - v3/models/v3_climate_transformer.pt
+      - v3/models/v3_scaler.joblib
+    metrics:
+      - v3/models/metrics.json:
+          cache: false
+    plots:
+      - v3/models/training_curves.csv
+
+  # =============================================================================
+  # Stage 3: Evaluate Model
+  # =============================================================================
+  evaluate:
+    cmd: python v3/scripts/evaluate.py
+    deps:
+      - v3/models/v3_climate_transformer.pt
+      - v3/models/v3_scaler.joblib
+      - data/processed/weather_v3_ready.csv
+      - v3/scripts/evaluate.py
+    metrics:
+      - v3/models/evaluation_results.json:
+          cache: false
+    plots:
+      - v3/models/predictions_vs_actual.csv

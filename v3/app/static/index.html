@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 V3 Climate Forecaster | Interactive Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-cyan: #22d3ee;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d2d3a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-cyan: linear-gradient(135deg, #22d3ee 0%, #6366f1 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient-cyan);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* Main Layout */
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main { grid-template-columns: 1fr; }
+        }
+
+        /* Map Section */
+        .map-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+
+        .map-hint {
+            padding: 0.75rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-icon {
+            font-size: 1.1rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* Location Info Grid */
+        .location-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .info-item {
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            border-radius: 10px;
+        }
+
+        .info-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        .climate-badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Inputs */
+        .input-group { margin-bottom: 1rem; }
+
+        .input-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        select { cursor: pointer; }
+        select option { background: var(--bg-card); }
+
+        /* Collapsible */
+        .collapsible {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover { background: rgba(99, 102, 241, 0.08); }
+
+        .collapsible-toggle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        .collapsible.open .collapsible-toggle { transform: rotate(180deg); }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible.open .collapsible-content { max-height: 400px; }
+
+        .collapsible-inner { padding: 1rem; }
+
+        /* Button */
+        .btn-primary {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Chart */
+        #chart {
+            height: 180px;
+            border-radius: 10px;
+        }
+
+        /* Forecast Grid */
+        .forecast-scroll {
+            display: flex;
+            gap: 0.6rem;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+        }
+
+        .forecast-day {
+            flex: 0 0 85px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.8rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .forecast-day:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .forecast-date {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .forecast-day-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0.2rem 0 0.4rem;
+        }
+
+        .forecast-temp {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--gradient-cyan);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .stat {
+            background: var(--bg-secondary);
+            padding: 0.6rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Loading & States */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none; }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        /* Leaflet Customization */
+        .leaflet-container { background: var(--bg-primary); }
+        .leaflet-control-attribution { background: rgba(0,0,0,0.5) !important; color: var(--text-muted) !important; }
+        .leaflet-control-attribution a { color: var(--accent-primary) !important; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🌍 Climate Forecaster <span class="version-badge">V3</span></h1>
+        <p class="subtitle">Click on the map or search a location • What-If Scenario Support • 7-Day Forecast</p>
+    </header>
+
+    <main class="main">
+        <!-- Map Section -->
+        <div class="map-section">
+            <div id="map"></div>
+            <p class="map-hint">📍 Click anywhere on the map to select a location, or use the search panel</p>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Search -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🔍</span>
+                    <h2 class="card-title">Quick Search</h2>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label">Latitude</label>
+                        <input type="number" id="latitude" placeholder="-90 to 90" step="0.01" min="-90" max="90">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Longitude</label>
+                        <input type="number" id="longitude" placeholder="-180 to 180" step="0.01" min="-180" max="180">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Start Date</label>
+                    <input type="date" id="start-date">
+                </div>
+            </div>
+
+            <!-- Location Info -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📍</span>
+                    <h2 class="card-title">Selected Location</h2>
+                </div>
+                <div class="location-grid">
+                    <div class="info-item">
+                        <div class="info-label">Coordinates</div>
+                        <div class="info-value" id="display-coords">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Climate Zone</div>
+                        <div class="info-value"><span class="climate-badge" id="display-climate">--</span></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Hemisphere</div>
+                        <div class="info-value" id="display-hemisphere">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Model</div>
+                        <div class="info-value">V3 Transformer</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What-If Scenario -->
+            <div class="collapsible" id="whatif-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('whatif-section')">
+                    <span>🔮 What-If Scenario (Optional)</span>
+                    <span class="collapsible-toggle">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label class="input-label">Humidity (%)</label>
+                                <input type="number" id="humidity" placeholder="0-100" min="0" max="100">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Pressure (mb)</label>
+                                <input type="number" id="pressure" placeholder="900-1100">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label class="input-label">Wind (kph)</label>
+                                <input type="number" id="wind" placeholder="0+" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Cloud (%)</label>
+                                <input type="number" id="cloud" placeholder="0-100" min="0" max="100">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label class="input-label">UV Index</label>
+                                <input type="number" id="uv" placeholder="0-15" min="0" max="15" step="0.1">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Precipitation (mm)</label>
+                                <input type="number" id="precip" placeholder="0+" min="0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forecast Button -->
+            <button class="btn-primary" id="forecast-btn" onclick="getForecast()">
+                <span>🚀</span> Generate 7-Day Forecast
+            </button>
+
+            <!-- Results -->
+            <div id="results" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📈</span>
+                        <h2 class="card-title">Temperature Trend</h2>
+                    </div>
+                    <div id="chart"></div>
+                    <div class="stats-row" id="stats"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📅</span>
+                        <h2 class="card-title">Daily Forecast</h2>
+                    </div>
+                    <div class="forecast-scroll" id="forecast-days"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize map with dark theme
+        const map = L.map('map').setView([25, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, CartoDB',
+            maxZoom: 19
+        }).addTo(map);
+
+        let marker = null;
+        const $ = id => document.getElementById(id);
+
+        // Set default date to today
+        $('start-date').valueAsDate = new Date();
+
+        // Map click handler
+        map.on('click', e => {
+            const { lat, lng } = e.latlng;
+            selectLocation(lat, lng);
+        });
+
+        function selectLocation(lat, lon) {
+            // Update inputs
+            $('latitude').value = lat.toFixed(4);
+            $('longitude').value = lon.toFixed(4);
+
+            // Update/create marker
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);"></div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                })
+            }).addTo(map);
+
+            // Update display
+            updateLocationDisplay(lat, lon);
+        }
+
+        function updateLocationDisplay(lat, lon) {
+            $('display-coords').textContent = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
+            $('display-hemisphere').textContent = lat >= 0 ? 'Northern' : 'Southern';
+
+            // Climate zone
+            const absLat = Math.abs(lat);
+            let zone = 'Polar';
+            if (absLat < 23.5) zone = 'Tropical';
+            else if (absLat < 35) zone = 'Subtropical';
+            else if (absLat < 55) zone = 'Temperate';
+            else if (absLat < 66.5) zone = 'Subarctic';
+            $('display-climate').textContent = zone;
+        }
+
+        // Manual coordinate input
+        $('latitude').addEventListener('change', syncFromInputs);
+        $('longitude').addEventListener('change', syncFromInputs);
+
+        function syncFromInputs() {
+            const lat = parseFloat($('latitude').value);
+            const lon = parseFloat($('longitude').value);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map);
+                map.setView([lat, lon], 5);
+                updateLocationDisplay(lat, lon);
+            }
+        }
+
+        function toggleCollapsible(id) {
+            $(id).classList.toggle('open');
+        }
+
+        async function getForecast() {
+            const btn = $('forecast-btn');
+            const lat = parseFloat($('latitude').value);
+            const lon = parseFloat($('longitude').value);
+            const date = $('start-date').value;
+
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please select a location on the map or enter coordinates');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Loading...';
+
+            // Build request
+            const request = { latitude: lat, longitude: lon, start_date: date };
+
+            // Add what-if scenario
+            const scenario = {};
+            ['humidity', 'pressure', 'wind', 'cloud', 'uv', 'precip'].forEach(id => {
+                const val = $(id).value;
+                if (val) {
+                    const key = id === 'pressure' ? 'pressure_mb' :
+                                id === 'wind' ? 'wind_kph' :
+                                id === 'uv' ? 'uv_index' :
+                                id === 'precip' ? 'precip_mm' : id;
+                    scenario[key] = parseFloat(val);
+                }
+            });
+            if (Object.keys(scenario).length > 0) request.weather_scenario = scenario;
+
+            try {
+                const res = await fetch('/api/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                if (!res.ok) throw new Error('Forecast failed');
+                const data = await res.json();
+                renderResults(data);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<span>🚀</span> Generate 7-Day Forecast';
+        }
+
+        function renderResults(data) {
+            const temps = data.forecast.map(f => f.temperature);
+            const dates = data.forecast.map(f => f.date);
+
+            // Plotly chart
+            Plotly.newPlot('chart', [{
+                x: dates,
+                y: temps,
+                type: 'scatter',
+                mode: 'lines+markers',
+                fill: 'tozeroy',
+                line: { color: '#6366f1', width: 3, shape: 'spline' },
+                marker: { size: 8, color: '#8b5cf6' },
+                fillcolor: 'rgba(99, 102, 241, 0.1)'
+            }], {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#94a3b8', size: 10 },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.05)', tickangle: -45 },
+                yaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: '°C' },
+                margin: { t: 10, r: 20, b: 50, l: 40 },
+                showlegend: false
+            }, { responsive: true, displayModeBar: false });
+
+            // Stats
+            const min = Math.min(...temps).toFixed(1);
+            const max = Math.max(...temps).toFixed(1);
+            const avg = (temps.reduce((a,b) => a+b, 0) / temps.length).toFixed(1);
+            const trend = temps[6] > temps[0] ? '📈 Rising' : temps[6] < temps[0] ? '📉 Falling' : '➡️ Stable';
+
+            $('stats').innerHTML = `
+                <div class="stat"><div class="stat-value">${min}°</div><div class="stat-label">Min</div></div>
+                <div class="stat"><div class="stat-value">${max}°</div><div class="stat-label">Max</div></div>
+                <div class="stat"><div class="stat-value">${avg}°</div><div class="stat-label">Avg</div></div>
+                <div class="stat"><div class="stat-value">${trend}</div><div class="stat-label">Trend</div></div>
+            `;
+
+            // Daily cards
+            $('forecast-days').innerHTML = data.forecast.map(f => `
+                <div class="forecast-day">
+                    <div class="forecast-date">${f.date}</div>
+                    <div class="forecast-day-name">${f.day.slice(0,3)}</div>
+                    <div class="forecast-temp">${f.temperature}°</div>
+                </div>
+            `).join('');
+
+            $('results').classList.remove('hidden');
+        }
+
+        // Pre-select Egypt as default
+        selectLocation(30.0, 31.2);
+        map.setView([30.0, 31.2], 4);
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+# V3 Hyperparameters and Configuration
+# Tracked by DVC for reproducibility
+
+# =============================================================================
+# Model Architecture
+# =============================================================================
+model:
+  d_model: 128
+  nhead: 8
+  num_layers: 4
+  dropout: 0.2
+  seq_len: 14
+  pred_len: 7
+
+# =============================================================================
+# Training Configuration
+# =============================================================================
+training:
+  epochs: 50
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  patience: 5
+  scheduler_factor: 0.5
+  scheduler_patience: 3
+
+# =============================================================================
+# Feature Configuration
+# =============================================================================
+features:
+  selected:
+    - latitude
+    - longitude
+    - abs_latitude
+    - latitude_normalized
+    - hemisphere_encoded
+    - humidity
+    - pressure_mb
+    - wind_kph
+    - cloud
+    - precip_mm
+    - uv_index
+    - visibility_km
+    - gust_kph
+    - wind_degree
+    - air_quality_Ozone
+    - air_quality_Nitrogen_dioxide
+    - air_quality_PM2.5
+    - air_quality_Carbon_Monoxide
+    - air_quality_Sulphur_dioxide
+    - month_sin
+    - month_cos
+    - day_year_sin
+    - day_year_cos
+    - hour_sin
+    - hour_cos
+
+  cyclical:
+    month: 12
+    day_of_year: 365
+    hour: 24
+
+# =============================================================================
+# Data Configuration
+# =============================================================================
+data:
+  raw_path: data/raw/GlobalWeatherRepository.csv
+  processed_path: data/processed/weather_v3_ready.csv
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15

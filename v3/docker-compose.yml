@@ -1,0 +1,102 @@
+# V3 Docker Compose
+# Local development with MLflow UI and V3 API
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # V3 Climate Forecaster API
+  # =============================================================================
+  v3-api:
+    build:
+      context: ..
+      dockerfile: v3/Dockerfile
+      target: development
+    container_name: v3-climate-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source for hot-reload in development
+      - ./src:/app/v3/src:ro
+      - ./app:/app/v3/app:ro
+      - ./models:/app/v3/models:ro
+    environment:
+      - PYTHONPATH=/app
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - v3-network
+
+  # =============================================================================
+  # MLflow Tracking Server
+  # =============================================================================
+  mlflow:
+    image: python:3.11-slim
+    container_name: v3-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+      - ./models:/app/models:rw
+    working_dir: /mlflow
+    command: >
+      bash -c "
+        pip install --quiet mlflow &&
+        mlflow server
+          --host 0.0.0.0
+          --port 5000
+          --backend-store-uri sqlite:///mlflow.db
+          --default-artifact-root /mlflow/artifacts
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - v3-network
+
+  # =============================================================================
+  # Training Job (on-demand)
+  # =============================================================================
+  trainer:
+    build:
+      context: ..
+      dockerfile: v3/Dockerfile
+      target: development
+    container_name: v3-trainer
+    volumes:
+      - ./:/app/v3:ro
+      - ../data:/app/data:ro
+      - ./models:/app/v3/models:rw
+    environment:
+      - PYTHONPATH=/app
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    command: >
+      python -m v3.mlflow.train
+        --experiment v3-climate-transformer
+        --epochs 50
+    depends_on:
+      - mlflow
+    profiles:
+      - training  # Only run when explicitly requested
+    networks:
+      - v3-network
+
+# =============================================================================
+# Networks and Volumes
+# =============================================================================
+networks:
+  v3-network:
+    driver: bridge
+
+volumes:
+  mlflow-data:
+    driver: local
