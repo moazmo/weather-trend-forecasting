@@ -4,6 +4,20 @@
 
 > 📊 **[View Interactive Presentation →](https://moazmo.github.io/weather-trend-forecasting/)** | Full interactive charts on GitHub Pages
 
+<table>
+<tr>
+<td align="center" style="padding: 20px; background-color: #1a73e8;">
+
+### 🎯 Want to see the full presentation with interactive charts?
+
+**[👉 Open on GitHub Pages 👈](https://moazmo.github.io/weather-trend-forecasting/)**
+
+*Explore EDA visualizations, model comparisons, and climate analysis with full interactivity!*
+
+</td>
+</tr>
+</table>
+
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
