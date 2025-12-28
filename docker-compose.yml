@@ -1,34 +1,14 @@
 # ==================================================
-# Docker Compose - Local Development
+# Docker Compose - V4 Weather Backtester
 # ==================================================
 
 services:
-  # V2 Production API (default)
+  # V4 Weather Backtester (XGBoost)
   weather-api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: weather-forecasting-v2
-    ports:
-      - "8001:8001"
-    environment:
-      - PYTHONUNBUFFERED=1
-    volumes:
-      # Mount for development (hot reload)
-      - ./v2/app:/app/v2/app:ro
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/api/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # V4 Experimental API (Ensemble)
-  weather-api-v4:
-    build:
-      context: .
       dockerfile: v4/Dockerfile
-    container_name: weather-forecasting-v4
+    container_name: weather-backtester-v4
     ports:
       - "8002:8002"
     environment:
@@ -36,23 +16,11 @@ services:
     volumes:
       - ./v4/app:/app/v4/app:ro
       - ./v4/src:/app/v4/src:ro
-    profiles:
-      - v4  # Only starts with: docker compose --profile v4 up
+      - ./v4/models:/app/v4/models:ro
+      - ./data:/app/data:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Optional: V1 App (MLP-based, legacy)
-  weather-api-v1:
-    build:
-      context: .
-      dockerfile: app/Dockerfile
-    container_name: weather-forecasting-v1
-    ports:
-      - "8000:8000"
-    profiles:
-      - v1  # Only starts with: docker compose --profile v1 up
-    restart: unless-stopped
