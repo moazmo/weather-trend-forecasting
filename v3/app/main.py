@@ -13,7 +13,6 @@ from datetime import datetime
 from typing import Any
 
 import httpx  # For async HTTP requests
-
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
