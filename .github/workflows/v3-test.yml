@@ -33,7 +33,7 @@ jobs:
 
       - name: Check formatting with Black
         run: |
-          black --check --diff v3/src v3/app v3/tests
+          black --check --diff --config pyproject.toml v3/src v3/app v3/tests
 
       - name: Lint with Ruff
         run: |
