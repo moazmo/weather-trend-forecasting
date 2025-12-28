@@ -267,7 +267,7 @@ shap>=0.42.0         # SHAP analysis
 kaleido>=0.2.1       # Static image export
 ```
 
-See full requirements in [`requirements.txt`](requirements.txt) and [`assessment/requirements.txt`](assessment/requirements.txt).
+Explore all the requirements in requirements.txt files.
 
 ---
 
@@ -281,4 +281,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Moaz Muhammad**
 
-*Built for the PM Accelerator AI Product Management Assessment*
+*Built for the PM Accelerator*
