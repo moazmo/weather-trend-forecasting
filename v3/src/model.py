@@ -1,5 +1,53 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
+class GatedResidualNetwork(nn.Module):
+    """Gated Residual Network for variable selection and feature gating."""
+
+    def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.2):
+        super().__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.gate = nn.Linear(hidden_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(output_dim)
+        self.skip = nn.Linear(input_dim, output_dim) if input_dim != output_dim else None
+
+    def forward(self, x):
+        residual = self.skip(x) if self.skip else x
+        h = F.gelu(self.fc1(x))
+        h = self.dropout(h)
+        out = self.fc2(h) * torch.sigmoid(self.gate(h))
+        return self.layer_norm(out + residual)
+
+
+class V3ClimateTransformer(nn.Module):
+    """V3 Climate Transformer with Gated Residual Networks."""
+
+    def __init__(
+        self, input_dim, d_model=128, nhead=8, num_layers=4, dropout=0.2, seq_len=14, pred_len=7
+    ):
+        super().__init__()
+        self.input_grn = GatedResidualNetwork(input_dim, d_model * 2, d_model, dropout)
+        self.pos_encoder = nn.Parameter(torch.randn(1, seq_len, d_model) * 0.02)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model, nhead, d_model * 4, dropout, batch_first=True, activation="gelu"
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers)
+        self.output_grn = GatedResidualNetwork(d_model, d_model * 2, d_model, dropout)
+        self.output_head = nn.Sequential(
+            nn.Linear(d_model, d_model // 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model // 2, pred_len),
+        )
+
+    def forward(self, x):
+        x = self.input_grn(x) + self.pos_encoder
+        x = self.transformer(x)
+        return self.output_head(self.output_grn(x[:, -1, :]))
 
 
 class HybridClimateTransformer(nn.Module):
