@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 import torch
-import joblib
 
 # Use absolute imports for better reliability in this project structure
 from v3.src.config import DEFAULT_WEATHER_VALUES, V3Config
@@ -18,14 +18,15 @@ from v3.src.preprocessing import V3Preprocessor
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-MODEL_CHECKPOINT = BASE_DIR / 'v3' / 'models' / 'v3_hybrid_best.pt'
-ARTIFACTS_PATH = BASE_DIR / 'v3' / 'models' / 'v3_1_production_artifacts.joblib'
+MODEL_CHECKPOINT = BASE_DIR / "v3" / "models" / "v3_hybrid_best.pt"
+ARTIFACTS_PATH = BASE_DIR / "v3" / "models" / "v3_1_production_artifacts.joblib"
+
 
 class V3Forecaster:
     """
     High-level interface for V3.1 Hybrid weather forecasting.
     Separates processing for Dynamic (Weather) and Static (Geo) features.
-    
+
     Usage:
         forecaster = V3Forecaster()
         predictions = forecaster.predict(
@@ -38,7 +39,7 @@ class V3Forecaster:
 
     def __init__(self, model_path: Path | None = None, device: str = "auto"):
         self.model_path = model_path or MODEL_CHECKPOINT
-        
+
         # Determine device
         if device == "auto":
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,14 +48,14 @@ class V3Forecaster:
 
         # Load Artifacts (Scalers, Encoders)
         if not ARTIFACTS_PATH.exists():
-             raise FileNotFoundError(f"Artifacts not found at {ARTIFACTS_PATH}")
-        
+            raise FileNotFoundError(f"Artifacts not found at {ARTIFACTS_PATH}")
+
         self.artifacts = joblib.load(ARTIFACTS_PATH)
-        self.scaler_dyn = self.artifacts['scaler_dyn']
-        self.scaler_stat = self.artifacts['scaler_stat']
-        self.country_encoder = self.artifacts['country_encoder']
-        self.dyn_features = self.artifacts['dyn_features']
-        self.stat_features = self.artifacts['stat_features']
+        self.scaler_dyn = self.artifacts["scaler_dyn"]
+        self.scaler_stat = self.artifacts["scaler_stat"]
+        self.country_encoder = self.artifacts["country_encoder"]
+        self.dyn_features = self.artifacts["dyn_features"]
+        self.stat_features = self.artifacts["stat_features"]
 
         # Load Model
         self.model = self._load_model()
@@ -67,13 +68,13 @@ class V3Forecaster:
 
         # Initialize model with saved dimensions
         model = HybridClimateTransformer(
-            num_countries=self.artifacts['num_countries'],
+            num_countries=self.artifacts["num_countries"],
             dyn_input_dim=len(self.dyn_features),
             stat_input_dim=len(self.stat_features),
-            d_model=128, # Architecture constant
-            num_layers=4 # Architecture constant
+            d_model=128,  # Architecture constant
+            num_layers=4,  # Architecture constant
         )
-        
+
         # Load weights
         state_dict = torch.load(self.model_path, map_location=self.device)
         model.load_state_dict(state_dict)
@@ -111,50 +112,51 @@ class V3Forecaster:
             latitude=latitude,
             longitude=longitude,
             start_date=start_dt,
-            weather_history=weather_history
+            weather_history=weather_history,
         )
-        
+
         # Extract only the dynamic columns we need
         # raw_sequence is list of dicts. We convert to DataFrame-like array
         import pandas as pd
+
         seq_df = pd.DataFrame(raw_sequence)
-        
+
         # Ensure Month sin/cos
         seq_df = self._add_time_features(seq_df, start_dt)
-        
+
         # Select Dynamic Features
         # Fill missing with 0 just in case
         for col in self.dyn_features:
             if col not in seq_df.columns:
                 seq_df[col] = 0.0
-                
+
         X_dyn = seq_df[self.dyn_features].values
-        
+
         # Scale Dynamic
         X_dyn = self.scaler_dyn.transform(X_dyn)
-        
+
         # 3. Preprocess Static Features
         # ["latitude", "longitude", "abs_latitude", "hemisphere_encoded"]
         abs_lat = abs(latitude)
         hemi = 1 if latitude >= 0 else 0
-        X_stat = np.array([[latitude, longitude, abs_lat, hemi]]) # Shape (1, 4)
-        
+        X_stat = np.array([[latitude, longitude, abs_lat, hemi]])  # Shape (1, 4)
+
         # Scale Static
         X_stat = self.scaler_stat.transform(X_stat)
-        
+
         # 4. Process Country
         try:
             country_id = self.country_encoder.transform([country])[0]
         except ValueError:
             # Fallback to mostly populated country if unknown
-            country_id = self.country_encoder.transform(['Egypt'])[0]
-            
+            country_id = self.country_encoder.transform(["Egypt"])[0]
+
         X_country = np.array([country_id])
 
         # 5. Convert to Tensors
-        t_dyn = torch.FloatTensor(X_dyn).unsqueeze(0).to(self.device)   # [1, Seq, Dyn_Dim]
-        t_stat = torch.FloatTensor(X_stat).to(self.device)              # [1, Stat_Dim]
-        t_country = torch.LongTensor(X_country).to(self.device)         # [1]
+        t_dyn = torch.FloatTensor(X_dyn).unsqueeze(0).to(self.device)  # [1, Seq, Dyn_Dim]
+        t_stat = torch.FloatTensor(X_stat).to(self.device)  # [1, Stat_Dim]
+        t_country = torch.LongTensor(X_country).to(self.device)  # [1]
 
         # 6. Predict
         with torch.no_grad():
@@ -184,10 +186,10 @@ class V3Forecaster:
 
     def _add_time_features(self, df, start_dt):
         """Add cyclic time features to the sequence DataFrame."""
-        dates = [start_dt - timedelta(days=i) for i in range(len(df)-1, -1, -1)]
+        dates = [start_dt - timedelta(days=i) for i in range(len(df) - 1, -1, -1)]
         months = np.array([d.month for d in dates])
-        df['month_sin'] = np.sin(2 * np.pi * months / 12)
-        df['month_cos'] = np.cos(2 * np.pi * months / 12)
+        df["month_sin"] = np.sin(2 * np.pi * months / 12)
+        df["month_cos"] = np.cos(2 * np.pi * months / 12)
         return df
 
     def get_model_info(self) -> dict[str, Any]:
@@ -196,5 +198,5 @@ class V3Forecaster:
             "device": self.device,
             "features_dynamic": self.dyn_features,
             "features_static": self.stat_features,
-            "num_countries": len(self.country_encoder.classes_)
+            "num_countries": len(self.country_encoder.classes_),
         }

@@ -107,7 +107,9 @@ async def root():
     ui_path = Path(__file__).parent / "static" / "index.html"
     if ui_path.exists():
         return FileResponse(ui_path)
-    return HTMLResponse("<h1>V3.1 Weather Forecaster API</h1><p>UI not found. Use /docs for API.</p>")
+    return HTMLResponse(
+        "<h1>V3.1 Weather Forecaster API</h1><p>UI not found. Use /docs for API.</p>"
+    )
 
 
 @app.get("/health")
@@ -117,7 +119,7 @@ async def health_check():
         "status": "healthy",
         "model_loaded": forecaster is not None,
         "timestamp": datetime.now().isoformat(),
-        "version": "3.1.0 (Hybrid)"
+        "version": "3.1.0 (Hybrid)",
     }
 
 
@@ -212,6 +214,7 @@ async def get_climate_zones():
 
 import httpx  # For async HTTP requests
 
+
 @app.get("/api/historical")
 async def get_historical_comparison(
     lat: float = Query(..., ge=-90, le=90, description="Latitude"),
@@ -222,13 +225,13 @@ async def get_historical_comparison(
 ):
     """
     Compare model predictions against actual historical temperatures.
-    
+
     Fetches actual temps from Open-Meteo Archive API, then runs the model
     to produce predictions for the same date range.
     """
     try:
         fc = get_forecaster()
-        
+
         # 1. Fetch Actual Historical Temperatures from Open-Meteo
         open_meteo_url = (
             f"https://archive-api.open-meteo.com/v1/archive?"
@@ -236,40 +239,39 @@ async def get_historical_comparison(
             f"&start_date={start_date}&end_date={end_date}"
             f"&daily=temperature_2m_mean&timezone=auto"
         )
-        
+
         async with httpx.AsyncClient() as client:
             resp = await client.get(open_meteo_url)
             resp.raise_for_status()
             data = resp.json()
-        
+
         dates = data.get("daily", {}).get("time", [])
         actuals = data.get("daily", {}).get("temperature_2m_mean", [])
-        
+
         if not dates or not actuals:
-            raise HTTPException(status_code=404, detail="No historical data found for this location/range.")
-        
+            raise HTTPException(
+                status_code=404, detail="No historical data found for this location/range."
+            )
+
         # 2. Run Model Predictions for each date in the range
         # Note: The model predicts 7 days ahead. For comparison, we'll use the Day 1 prediction.
         predictions = []
         for date_str in dates:
-            result = fc.predict(
-                latitude=lat,
-                longitude=lon,
-                country=country,
-                start_date=date_str
-            )
+            result = fc.predict(latitude=lat, longitude=lon, country=country, start_date=date_str)
             # Take the first forecast day (Day 0 = start_date itself)
             predictions.append(result["forecast"][0]["temperature"])
-        
+
         return {
             "dates": dates,
             "actual": actuals,
             "predicted": predictions,
             "location": {"latitude": lat, "longitude": lon, "country": country},
         }
-        
+
     except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=502, detail=f"Open-Meteo API error: {e.response.text}") from e
+        raise HTTPException(
+            status_code=502, detail=f"Open-Meteo API error: {e.response.text}"
+        ) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

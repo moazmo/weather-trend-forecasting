@@ -1,0 +1,62 @@
+{
+  "zscore_results": {
+    "Outlier Count": {
+      "temperature_celsius": 525.0,
+      "humidity": 0.0,
+      "pressure_mb": 79.0,
+      "wind_kph": 154.0,
+      "precip_mm": 1551.0,
+      "cloud": 0.0,
+      "uv_index": 430.0
+    },
+    "Percentage (%)": {
+      "temperature_celsius": 0.45970771345761496,
+      "humidity": 0.0,
+      "pressure_mb": 0.06917506545362205,
+      "wind_kph": 0.13484759594756707,
+      "precip_mm": 1.3581079306147825,
+      "cloud": 0.0,
+      "uv_index": 0.37652250816528465
+    }
+  },
+  "iqr_results": {
+    "outliers": {
+      "temperature_celsius": 2602.0,
+      "humidity": 0.0,
+      "pressure_mb": 3370.0,
+      "wind_kph": 1786.0,
+      "precip_mm": 21498.0,
+      "cloud": 0.0,
+      "uv_index": 256.0
+    },
+    "percentage": {
+      "temperature_celsius": 2.2783989912699316,
+      "humidity": 0.0,
+      "pressure_mb": 2.9508857035279283,
+      "wind_kph": 1.5638818594958102,
+      "precip_mm": 18.824374140784393,
+      "cloud": 0.0,
+      "uv_index": 0.22416223741933225
+    },
+    "lower_bound": {
+      "temperature_celsius": 0.6999999999999993,
+      "humidity": -3.5,
+      "pressure_mb": 998.0,
+      "wind_kph": -10.75,
+      "precip_mm": -0.045,
+      "cloud": -112.5,
+      "uv_index": -8.5
+    },
+    "upper_bound": {
+      "temperature_celsius": 44.7,
+      "humidity": 136.5,
+      "pressure_mb": 1030.0,
+      "wind_kph": 35.25,
+      "precip_mm": 0.075,
+      "cloud": 187.5,
+      "uv_index": 14.7
+    }
+  },
+  "isolation_forest_outliers": 5711,
+  "lof_outliers": 2500
+}

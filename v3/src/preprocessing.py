@@ -222,23 +222,23 @@ class V3Preprocessor:
         if len(weather_history) < seq_len:
             padding = seq_len - len(weather_history)
             weather_history = [DEFAULT_WEATHER_VALUES.copy()] * padding + weather_history
-            
+
         sequence = []
         for i in range(seq_len):
             # We assume history is chronological up to start_date
             # But actually `weather_history` usually represents the *past* leading up to today.
             # So index -1 is yesterday, -2 is day before.
             # We just return the history enriched with defaults.
-            
+
             day_data = weather_history[i].copy()
-            
+
             # Fill defaults
             for k, v in DEFAULT_WEATHER_VALUES.items():
                 if k not in day_data:
                     day_data[k] = v
-                    
+
             sequence.append(day_data)
-            
+
         return sequence
 
     def create_sequences_from_df(

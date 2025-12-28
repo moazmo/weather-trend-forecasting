@@ -1,0 +1,14 @@
+# Assessment Additional Requirements
+# These are additional dependencies for the advanced assessment
+
+# Presentation generation
+python-pptx>=0.6.21
+
+# SHAP analysis
+shap>=0.42.0
+
+# Additional visualization
+kaleido>=0.2.1
+
+# Note: The following core dependencies are assumed from the main project:
+# pandas, numpy, scipy, scikit-learn, xgboost, prophet, plotly, matplotlib, seaborn, torch
