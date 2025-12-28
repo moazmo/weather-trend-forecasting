@@ -12,6 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from datetime import datetime
 from typing import Any
 
+import httpx  # For async HTTP requests
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -212,7 +214,6 @@ async def get_climate_zones():
 # Historical Comparison (Predicted vs Actual)
 # =============================================================================
 
-import httpx  # For async HTTP requests
 
 
 @app.get("/api/historical")
