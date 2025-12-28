@@ -1,0 +1,26 @@
+{
+  "features": [
+    "humidity",
+    "pressure_mb",
+    "wind_kph",
+    "wind_mph",
+    "cloud",
+    "uv_index",
+    "visibility_km",
+    "gust_kph",
+    "precip_mm",
+    "air_quality_Carbon_Monoxide",
+    "air_quality_Ozone",
+    "air_quality_PM2.5",
+    "air_quality_PM10",
+    "latitude",
+    "longitude",
+    "abs_latitude",
+    "latitude_normalized",
+    "hemisphere",
+    "month_sin",
+    "month_cos",
+    "day_year_sin",
+    "day_year_cos"
+  ]
+}

@@ -1,721 +1,465 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🌍 V4 Ensemble Weather Forecaster</title>
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 V4 Weather Backtester</title>
+    
     <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
+    
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+    
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-        background: linear-gradient(
-          135deg,
-          #0f0c29 0%,
-          #302b63 50%,
-          #24243e 100%
-        );
-        min-height: 100vh;
-        color: #fff;
-      }
-
-      .container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 1.5rem;
-      }
-
-      header {
-        text-align: center;
-        margin-bottom: 1.5rem;
-      }
-
-      h1 {
-        font-size: 2rem;
-        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-      }
-
-      .badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        background: rgba(255, 107, 107, 0.2);
-        border: 1px solid #ff6b6b;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        color: #ff6b6b;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-      }
-
-      @media (max-width: 1024px) {
-        .grid {
-          grid-template-columns: 1fr;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
         }
-      }
-
-      .card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 1.5rem;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
-      }
-
-      .card-title {
-        font-size: 1rem;
-        color: #667eea;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      #map {
-        height: 400px;
-        border-radius: 12px;
-        z-index: 1;
-      }
-
-      .coords {
-        margin-top: 1rem;
-        padding: 0.75rem;
-        background: rgba(102, 126, 234, 0.1);
-        border-radius: 8px;
-        font-family: monospace;
-        font-size: 0.9rem;
-      }
-
-      .input-row {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .input-group {
-        flex: 1;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 0.5rem;
-        color: #a0aec0;
-        font-size: 0.85rem;
-      }
-
-      input,
-      select {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        color: #fff;
-        font-size: 1rem;
-      }
-
-      input:focus,
-      select:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      button {
-        width: 100%;
-        padding: 1rem;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        border: none;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-      }
-
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      #forecast-chart,
-      #comparison-chart {
-        height: 300px;
-        margin-top: 1rem;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-top: 1rem;
-      }
-
-      .stat {
-        text-align: center;
-        padding: 0.75rem;
-        background: rgba(102, 126, 234, 0.1);
-        border-radius: 8px;
-      }
-
-      .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-      }
-
-      .stat-label {
-        font-size: 0.75rem;
-        color: #a0aec0;
-        margin-top: 0.25rem;
-      }
-
-      .stat.success {
-        background: rgba(72, 187, 120, 0.15);
-      }
-      .stat.success .stat-value {
-        color: #48bb78;
-      }
-
-      .stat.warning {
-        background: rgba(237, 137, 54, 0.15);
-      }
-      .stat.warning .stat-value {
-        color: #ed8936;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1rem;
-        font-size: 0.9rem;
-      }
-
-      th,
-      td {
-        padding: 0.75rem;
-        text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      th {
-        color: #667eea;
-        font-weight: 500;
-      }
-
-      .actual {
-        color: #48bb78;
-      }
-      .error {
-        color: #fc8181;
-      }
-      .predicted {
-        color: #667eea;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      .loading {
-        text-align: center;
-        padding: 2rem;
-        color: #a0aec0;
-      }
-
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(102, 126, 234, 0.2);
-        border-top-color: #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-      }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+        
+        header { text-align: center; margin-bottom: 1.5rem; }
+        
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88, #ffdd00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
         }
-      }
-
-      .climate-info {
-        display: flex;
-        gap: 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-      }
-
-      .climate-tag {
-        padding: 0.25rem 0.75rem;
-        background: rgba(118, 75, 162, 0.2);
-        border-radius: 20px;
-        color: #d6bcfa;
-      }
-
-      footer {
-        text-align: center;
-        margin-top: 2rem;
-        padding: 1.5rem;
-        color: #718096;
-        font-size: 0.8rem;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
-      }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: linear-gradient(90deg, rgba(0, 217, 255, 0.2), rgba(0, 255, 136, 0.2));
+            border: 1px solid #00d9ff;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #00d9ff;
+        }
+        
+        .model-stats {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #a0aec0;
+        }
+        
+        .model-stats span { color: #00ff88; font-weight: 600; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1rem;
+            color: #00d9ff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        #map { height: 350px; border-radius: 12px; z-index: 1; }
+        
+        .input-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .input-group { flex: 1; }
+        
+        label { display: block; margin-bottom: 0.5rem; color: #a0aec0; font-size: 0.85rem; }
+        
+        input, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+        }
+        
+        input:focus, select:focus { outline: none; border-color: #00d9ff; }
+        
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border: none;
+            border-radius: 8px;
+            color: #1a1a2e;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+        
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1rem; }
+        
+        .stat {
+            text-align: center;
+            padding: 0.75rem;
+            background: rgba(0, 217, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #00d9ff; }
+        .stat-label { font-size: 0.75rem; color: #a0aec0; margin-top: 0.25rem; }
+        
+        .stat.success { background: rgba(0, 255, 136, 0.15); }
+        .stat.success .stat-value { color: #00ff88; }
+        
+        .stat.warning { background: rgba(255, 221, 0, 0.15); }
+        .stat.warning .stat-value { color: #ffdd00; }
+        
+        #chart { height: 300px; margin-top: 1rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        th { color: #00d9ff; font-weight: 500; }
+        .actual { color: #00ff88; }
+        .error { color: #ff6b6b; }
+        .predicted { color: #00d9ff; }
+        
+        .hidden { display: none; }
+        
+        .loading { text-align: center; padding: 2rem; color: #a0aec0; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(0, 217, 255, 0.2);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .date-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            text-align: center;
+            color: #00ff88;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            color: #718096;
+            font-size: 0.8rem;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
-      <header>
-        <h1>🌍 V4 Ensemble Weather Forecaster</h1>
-        <span class="badge">EXPERIMENTAL</span>
-        <p style="margin-top: 0.5rem; color: #a0aec0; font-size: 0.9rem">
-          XGBoost + Transformer Ensemble | Click anywhere on the map
-        </p>
-      </header>
-
-      <div class="grid">
-        <!-- Map Panel -->
-        <div class="card">
-          <div class="card-title">🗺️ Interactive Map</div>
-          <div id="map"></div>
-          <div class="coords" id="coords">
-            <strong>Coordinates:</strong> Click on the map to select a location
-          </div>
-          <div class="climate-info" id="climate-info"></div>
-        </div>
-
-        <!-- Controls Panel -->
-        <div class="card">
-          <div class="card-title">📊 Forecast Settings</div>
-
-          <div class="input-row">
-            <div class="input-group">
-              <label for="lat">Latitude</label>
-              <input
-                type="number"
-                id="lat"
-                value="30.04"
-                min="-90"
-                max="90"
-                step="0.01"
-              />
+        <header>
+            <h1>🌍 V4 Weather Backtester</h1>
+            <span class="badge">XGBoost Model • Test MAE: 1.21°C</span>
+            <div class="model-stats">
+                <div>📊 <span>211</span> Countries</div>
+                <div>📈 <span>22</span> Features</div>
+                <div>📅 <span>May 2024 - Dec 2025</span></div>
             </div>
-            <div class="input-group">
-              <label for="lon">Longitude</label>
-              <input
-                type="number"
-                id="lon"
-                value="31.24"
-                min="-180"
-                max="180"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <div class="input-row">
-            <div class="input-group">
-              <label for="date">Start Date</label>
-              <input type="date" id="date" />
-            </div>
-            <div class="input-group">
-              <label for="mode">Mode</label>
-              <select id="mode">
-                <option value="forecast">🔮 Future Forecast</option>
-                <option value="historical">📊 Historical Comparison</option>
-              </select>
-            </div>
-          </div>
-
-          <button id="btn-forecast">🚀 Generate Forecast</button>
-
-          <div id="stats" class="stats hidden">
-            <div class="stat">
-              <div class="stat-value" id="stat-min">--</div>
-              <div class="stat-label">Min °C</div>
-            </div>
-            <div class="stat">
-              <div class="stat-value" id="stat-max">--</div>
-              <div class="stat-label">Max °C</div>
-            </div>
-            <div class="stat">
-              <div class="stat-value" id="stat-avg">--</div>
-              <div class="stat-label">Average</div>
-            </div>
-            <div class="stat" id="stat-mae-container">
-              <div class="stat-value" id="stat-mae">--</div>
-              <div class="stat-label">MAE</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Results -->
-      <div id="results" class="hidden" style="margin-top: 1.5rem">
+        </header>
+        
         <div class="grid">
-          <!-- Forecast Chart -->
-          <div class="card">
-            <div class="card-title">📈 Temperature Forecast</div>
-            <div id="forecast-chart"></div>
-          </div>
-
-          <!-- Comparison Chart (for historical mode) -->
-          <div class="card" id="comparison-card">
-            <div class="card-title">📊 Actual vs Predicted</div>
-            <div id="comparison-chart"></div>
-          </div>
+            <!-- Map Panel -->
+            <div class="card">
+                <div class="card-title">🗺️ Select Location</div>
+                <div id="map"></div>
+            </div>
+            
+            <!-- Controls Panel -->
+            <div class="card">
+                <div class="card-title">⚙️ Backtesting Settings</div>
+                
+                <div class="date-info" id="date-info">
+                    📅 Valid date range: <strong>May 16, 2024</strong> to <strong>Dec 24, 2025</strong>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="country">Country</label>
+                        <select id="country">
+                            <option value="">Loading countries...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="start-date">Start Date</label>
+                        <input type="date" id="start-date" min="2024-05-16" max="2025-12-24">
+                    </div>
+                    <div class="input-group">
+                        <label for="end-date">End Date</label>
+                        <input type="date" id="end-date" min="2024-05-16" max="2025-12-24">
+                    </div>
+                </div>
+                
+                <button id="btn-predict">🔍 Run Backtest</button>
+                
+                <div id="stats" class="stats hidden">
+                    <div class="stat success">
+                        <div class="stat-value" id="stat-mae">--</div>
+                        <div class="stat-label">MAE (°C)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="stat-rmse">--</div>
+                        <div class="stat-label">RMSE (°C)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="stat-count">--</div>
+                        <div class="stat-label">Records</div>
+                    </div>
+                    <div class="stat warning">
+                        <div class="stat-value" id="stat-range">--</div>
+                        <div class="stat-label">Temp Range</div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <!-- Daily Table -->
-        <div class="card" style="margin-top: 1.5rem">
-          <div class="card-title">📅 Daily Breakdown</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Predicted</th>
-                <th>Confidence</th>
-                <th>Actual</th>
-                <th>Error</th>
-              </tr>
-            </thead>
-            <tbody id="forecast-table"></tbody>
-          </table>
+        
+        <!-- Results -->
+        <div id="results" class="hidden" style="margin-top: 1.5rem;">
+            <!-- Chart -->
+            <div class="card">
+                <div class="card-title">📊 Predicted vs Actual Temperature</div>
+                <div id="chart"></div>
+            </div>
+            
+            <!-- Table -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-title">📅 Detailed Results</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Predicted (°C)</th>
+                            <th>Actual (°C)</th>
+                            <th>Error (°C)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
-
-      <div id="loading" class="card hidden" style="margin-top: 1.5rem">
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Generating ensemble forecast...</p>
+        
+        <div id="loading" class="card hidden" style="margin-top: 1.5rem;">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Running backtest...</p>
+            </div>
         </div>
-      </div>
     </div>
-
+    
     <footer>
-      <p>
-        <strong>PM Accelerator Mission</strong>: "By making industry-leading
-        tools and education available to individuals from all backgrounds, we
-        level the playing field for future PM leaders."
-      </p>
-      <p style="margin-top: 0.5rem">
-        V4 Ensemble Model | XGBoost + Transformer with GRN
-      </p>
+        <p><strong>PM Accelerator</strong> | V4 XGBoost Weather Backtester</p>
+        <p style="margin-top: 0.5rem;">Historical data analysis • May 2024 - December 2025</p>
     </footer>
-
+    
     <script>
-      // Initialize map
-      const map = L.map("map").setView([30.04, 31.24], 3);
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // Initialize map
+        const map = L.map('map').setView([25, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        
+        let marker = null;
+        const $ = id => document.getElementById(id);
+        
+        // Set default dates
+        $('start-date').value = '2024-10-01';
+        $('end-date').value = '2024-10-07';
+        
+        // Load countries
+        async function loadCountries() {
+            try {
+                const response = await fetch('/api/countries');
+                const data = await response.json();
+                const select = $('country');
+                select.innerHTML = '<option value="">-- Select a country --</option>';
+                
+                data.countries.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.name;
+                    option.textContent = `${c.name} (${c.records} records)`;
+                    option.dataset.lat = c.latitude;
+                    option.dataset.lon = c.longitude;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Failed to load countries:', e);
+            }
         }
-      ).addTo(map);
-
-      let marker = null;
-      const $ = (id) => document.getElementById(id);
-
-      // Set default date
-      const today = new Date();
-      $("date").value = today.toISOString().split("T")[0];
-
-      // Climate zone colors
-      const climateColors = {
-        Tropical: "#ff6b6b",
-        Subtropical: "#ffa502",
-        Temperate: "#48bb78",
-        Subarctic: "#4299e1",
-        Polar: "#9f7aea",
-      };
-
-      function getClimateZone(lat) {
-        const absLat = Math.abs(lat);
-        if (absLat < 23.5) return "Tropical";
-        if (absLat < 35) return "Subtropical";
-        if (absLat < 55) return "Temperate";
-        if (absLat < 66.5) return "Subarctic";
-        return "Polar";
-      }
-
-      function updateLocation(lat, lon) {
-        $("lat").value = lat.toFixed(4);
-        $("lon").value = lon.toFixed(4);
-
-        const zone = getClimateZone(lat);
-        const hemisphere = lat >= 0 ? "Northern" : "Southern";
-
-        $("coords").innerHTML = `<strong>Coordinates:</strong> ${lat.toFixed(
-          4
-        )}°, ${lon.toFixed(4)}°`;
-        $("climate-info").innerHTML = `
-                <span class="climate-tag" style="background: ${climateColors[zone]}33; color: ${climateColors[zone]};">
-                    ${zone}
-                </span>
-                <span class="climate-tag">${hemisphere} Hemisphere</span>
-            `;
-
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon]).addTo(map);
-      }
-
-      // Click handler
-      map.on("click", (e) => {
-        updateLocation(e.latlng.lat, e.latlng.lng);
-      });
-
-      // Initial marker
-      updateLocation(30.04, 31.24);
-
-      // Forecast button
-      $("btn-forecast").onclick = async () => {
-        const lat = parseFloat($("lat").value);
-        const lon = parseFloat($("lon").value);
-        const date = $("date").value;
-        const mode = $("mode").value;
-
-        $("btn-forecast").disabled = true;
-        $("btn-forecast").textContent = "⏳ Loading...";
-        $("results").classList.add("hidden");
-        $("loading").classList.remove("hidden");
-
-        try {
-          let data;
-          if (mode === "historical") {
-            const endDate = new Date(date);
-            endDate.setDate(endDate.getDate() + 6);
-            const response = await fetch(
-              `/api/historical?lat=${lat}&lon=${lon}&start_date=${date}&end_date=${
-                endDate.toISOString().split("T")[0]
-              }`
-            );
-            data = await response.json();
-          } else {
-            const response = await fetch("/api/forecast", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ lat, lon, start_date: date }),
-            });
-            data = await response.json();
-          }
-
-          if (data.detail) throw new Error(data.detail);
-
-          renderResults(data, mode);
-        } catch (e) {
-          alert("Error: " + e.message);
-        } finally {
-          $("btn-forecast").disabled = false;
-          $("btn-forecast").textContent = "🚀 Generate Forecast";
-          $("loading").classList.add("hidden");
-        }
-      };
-
-      function renderResults(data, mode) {
-        $("results").classList.remove("hidden");
-
-        const forecast = data.forecast;
-        const summary = data.summary;
-
-        // Stats
-        $("stats").classList.remove("hidden");
-        $("stat-min").textContent = summary.min + "°";
-        $("stat-max").textContent = summary.max + "°";
-        $("stat-avg").textContent = summary.avg + "°";
-
-        if (summary.has_actual) {
-          $("stat-mae-container").classList.add("success");
-          $("stat-mae").textContent = summary.mae + "°";
-        } else {
-          $("stat-mae-container").classList.remove("success");
-          $("stat-mae").textContent =
-            summary.trend === "warming"
-              ? "📈"
-              : summary.trend === "cooling"
-              ? "📉"
-              : "➡️";
-          $("stat-mae-container").querySelector(".stat-label").textContent =
-            "Trend";
-        }
-
-        // Forecast chart
-        const dates = forecast.map((f) => f.date);
-        const temps = forecast.map((f) => f.temperature);
-        const lowerBounds = forecast.map(
-          (f) => f.confidence_lower || f.temperature - 2
-        );
-        const upperBounds = forecast.map(
-          (f) => f.confidence_upper || f.temperature + 2
-        );
-
-        const traces = [
-          {
-            x: dates,
-            y: upperBounds,
-            fill: "tozeroy",
-            type: "scatter",
-            mode: "lines",
-            line: { width: 0 },
-            fillcolor: "rgba(102, 126, 234, 0.1)",
-            name: "Upper Bound",
-            showlegend: false,
-          },
-          {
-            x: dates,
-            y: lowerBounds,
-            fill: "tozeroy",
-            type: "scatter",
-            mode: "lines",
-            line: { width: 0 },
-            fillcolor: "rgba(15, 12, 41, 1)",
-            name: "Lower Bound",
-            showlegend: false,
-          },
-          {
-            x: dates,
-            y: temps,
-            type: "scatter",
-            mode: "lines+markers",
-            name: "Predicted",
-            line: { color: "#667eea", width: 3 },
-            marker: { size: 8 },
-          },
-        ];
-
-        // Add actual temperatures if available
-        const hasActual = forecast.some((f) => f.actual !== undefined);
-        if (hasActual) {
-          const actualTemps = forecast.map((f) => f.actual);
-          traces.push({
-            x: dates.filter((_, i) => actualTemps[i] !== undefined),
-            y: actualTemps.filter((t) => t !== undefined),
-            type: "scatter",
-            mode: "lines+markers",
-            name: "Actual",
-            line: { color: "#48bb78", width: 3 },
-            marker: { size: 8 },
-          });
-        }
-
-        const layout = {
-          paper_bgcolor: "transparent",
-          plot_bgcolor: "transparent",
-          font: { color: "#fff" },
-          xaxis: { gridcolor: "rgba(255,255,255,0.1)" },
-          yaxis: {
-            gridcolor: "rgba(255,255,255,0.1)",
-            title: "Temperature (°C)",
-          },
-          margin: { t: 20, r: 20, b: 40, l: 50 },
-          legend: { x: 0, y: 1.1, orientation: "h" },
-          showlegend: true,
+        
+        loadCountries();
+        
+        // Country selection updates map
+        $('country').onchange = function() {
+            const option = this.options[this.selectedIndex];
+            if (option.dataset.lat) {
+                const lat = parseFloat(option.dataset.lat);
+                const lon = parseFloat(option.dataset.lon);
+                map.setView([lat, lon], 5);
+                
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map);
+            }
         };
-
-        Plotly.newPlot("forecast-chart", traces, layout, { responsive: true });
-
-        // Comparison chart (if actual data available)
-        if (hasActual) {
-          $("comparison-card").classList.remove("hidden");
-
-          const comparisonTraces = [
-            {
-              x: forecast.map((f) => f.date),
-              y: forecast.map((f) => f.temperature),
-              type: "bar",
-              name: "Predicted",
-              marker: { color: "#667eea" },
-            },
-            {
-              x: forecast
-                .filter((f) => f.actual !== undefined)
-                .map((f) => f.date),
-              y: forecast
-                .filter((f) => f.actual !== undefined)
-                .map((f) => f.actual),
-              type: "bar",
-              name: "Actual",
-              marker: { color: "#48bb78" },
-            },
-          ];
-
-          Plotly.newPlot(
-            "comparison-chart",
-            comparisonTraces,
-            {
-              ...layout,
-              barmode: "group",
-            },
-            { responsive: true }
-          );
-        } else {
-          $("comparison-card").classList.add("hidden");
-        }
-
-        // Table
-        $("forecast-table").innerHTML = forecast
-          .map(
-            (f) => `
+        
+        // Map click updates country
+        map.on('click', async (e) => {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+            
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map);
+            
+            // Find nearest country
+            const countries = $('country').options;
+            let minDist = Infinity;
+            let nearestIdx = 0;
+            
+            for (let i = 1; i < countries.length; i++) {
+                const clat = parseFloat(countries[i].dataset.lat);
+                const clon = parseFloat(countries[i].dataset.lon);
+                const dist = Math.sqrt((lat - clat) ** 2 + (lon - clon) ** 2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestIdx = i;
+                }
+            }
+            
+            $('country').selectedIndex = nearestIdx;
+        });
+        
+        // Run backtest
+        $('btn-predict').onclick = async () => {
+            const country = $('country').value;
+            const startDate = $('start-date').value;
+            const endDate = $('end-date').value;
+            
+            if (!country) {
+                alert('Please select a country');
+                return;
+            }
+            
+            if (!startDate) {
+                alert('Please select a start date');
+                return;
+            }
+            
+            $('btn-predict').disabled = true;
+            $('btn-predict').textContent = '⏳ Loading...';
+            $('results').classList.add('hidden');
+            $('loading').classList.remove('hidden');
+            
+            try {
+                const url = `/api/predict?country=${encodeURIComponent(country)}&start_date=${startDate}&end_date=${endDate || startDate}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.detail) throw new Error(data.detail);
+                
+                renderResults(data);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                $('btn-predict').disabled = false;
+                $('btn-predict').textContent = '🔍 Run Backtest';
+                $('loading').classList.add('hidden');
+            }
+        };
+        
+        function renderResults(data) {
+            $('results').classList.remove('hidden');
+            
+            const summary = data.summary;
+            const predictions = data.predictions;
+            
+            // Stats
+            $('stats').classList.remove('hidden');
+            $('stat-mae').textContent = summary.mae;
+            $('stat-rmse').textContent = summary.rmse;
+            $('stat-count').textContent = summary.count;
+            $('stat-range').textContent = `${summary.min_actual}° - ${summary.max_actual}°`;
+            
+            // Chart
+            const dates = predictions.map(p => p.datetime);
+            const predicted = predictions.map(p => p.predicted);
+            const actual = predictions.map(p => p.actual);
+            
+            const traces = [
+                {
+                    x: dates,
+                    y: predicted,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Predicted',
+                    line: { color: '#00d9ff', width: 2 },
+                    marker: { size: 6 }
+                },
+                {
+                    x: dates,
+                    y: actual,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Actual',
+                    line: { color: '#00ff88', width: 2 },
+                    marker: { size: 6 }
+                }
+            ];
+            
+            const layout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#fff' },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'Date' },
+                yaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'Temperature (°C)' },
+                margin: { t: 20, r: 20, b: 60, l: 50 },
+                legend: { x: 0, y: 1.1, orientation: 'h' },
+                showlegend: true
+            };
+            
+            Plotly.newPlot('chart', traces, layout, { responsive: true });
+            
+            // Table
+            $('results-table').innerHTML = predictions.map(p => `
                 <tr>
-                    <td>${f.date}</td>
-                    <td>${f.day}</td>
-                    <td class="predicted"><strong>${
-                      f.temperature
-                    }°C</strong></td>
-                    <td>${
-                      f.confidence_lower
-                        ? `${f.confidence_lower}° - ${f.confidence_upper}°`
-                        : "-"
-                    }</td>
-                    <td class="${f.actual !== undefined ? "actual" : ""}">${
-              f.actual !== undefined ? f.actual + "°C" : "-"
-            }</td>
-                    <td class="error">${
-                      f.error !== undefined ? f.error + "°" : "-"
-                    }</td>
+                    <td>${p.datetime}</td>
+                    <td class="predicted"><strong>${p.predicted}°C</strong></td>
+                    <td class="actual">${p.actual}°C</td>
+                    <td class="${p.error > 2 ? 'error' : ''}">${p.error}°</td>
                 </tr>
-            `
-          )
-          .join("");
-      }
+            `).join('');
+        }
     </script>
-  </body>
+</body>
 </html>

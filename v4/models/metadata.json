@@ -1,0 +1,12 @@
+{
+  "train_mae": 0.96,
+  "test_mae": 1.21,
+  "train_rmse": 1.29,
+  "test_rmse": 1.68,
+  "n_features": 22,
+  "date_range": {
+    "min": "2024-05-16",
+    "max": "2025-12-24"
+  },
+  "countries": 211
+}
