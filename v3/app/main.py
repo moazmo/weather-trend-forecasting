@@ -215,7 +215,6 @@ async def get_climate_zones():
 # =============================================================================
 
 
-
 @app.get("/api/historical")
 async def get_historical_comparison(
     lat: float = Query(..., ge=-90, le=90, description="Latitude"),
