@@ -219,7 +219,7 @@ def run_training(args):
                 best_loss = val_loss
 
                 # Save Model
-                model_path = MODELS_DIR / "v3_hybrid_best.pt"
+                model_path = MODELS_DIR / "v3_climate_transformer.pt"
                 torch.save(model.state_dict(), model_path)
                 mlflow.log_artifact(str(model_path))
 
@@ -232,7 +232,7 @@ def run_training(args):
                     "stat_features": stat_avail,
                     "num_countries": len(country_encoder.classes_),
                 }
-                art_path = MODELS_DIR / "v3_1_production_artifacts.joblib"
+                art_path = MODELS_DIR / "v3_scaler.joblib"
                 joblib.dump(artifacts, art_path)
                 mlflow.log_artifact(str(art_path))
 
