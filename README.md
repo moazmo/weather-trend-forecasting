@@ -37,7 +37,8 @@ This repository contains two main components:
 
 ## 📊 Assessment Analysis
 
-Comprehensive analysis of global weather data (114K records, 211 countries).
+Comprehensive analysis of global weather data (114K records, 204 countries).
+*Note: Data quality analysis identified 211 raw country entries, which were consolidated to 204 unique countries after resolving typos and standardization.*
 
 ### 📓 Notebooks
 
@@ -57,7 +58,7 @@ Comprehensive analysis of global weather data (114K records, 211 countries).
 |--------|-------|
 | **Best Model** | XGBoost |
 | **Test MAE** | **1.21°C** ✅ |
-| **Countries** | 211 |
+| **Countries** | 204 |
 | **Features** | 22 (from SHAP analysis) |
 | **Records** | 114,203 |
 | **Date Range** | May 2024 - Dec 2025 |
@@ -70,7 +71,7 @@ Interactive web application for historical model evaluation.
 
 ### Features
 
-- 🗺️ **Interactive Map** - Click to select from 211 countries
+- 🗺️ **Interactive Map** - Click to select from 204 countries
 - 📊 **Actual vs Predicted** - Visual comparison charts
 - 📅 **Date Selection** - Choose dates within dataset (May 2024 - Dec 2025)
 - 📈 **MAE Calculation** - Per-prediction accuracy metrics
@@ -90,7 +91,7 @@ uvicorn v4.app.main:app --port 8002
 
 ### How It Works
 
-1. **Select a country** from dropdown (211 available)
+1. **Select a country** from dropdown (204 available)
 2. **Pick a date range** (within May 2024 - Dec 2025)
 3. **Click "Run Backtest"**
 4. **View results**: Predicted vs Actual chart + MAE

@@ -9,7 +9,7 @@ XGBoost-based weather prediction with historical backtesting.
 | **Test MAE** | **1.21°C** |
 | Test RMSE | 1.68°C |
 | Features | 22 |
-| Countries | 211 |
+| Countries | 204 |
 
 ## Quick Start
 

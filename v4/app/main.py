@@ -35,7 +35,7 @@ app = FastAPI(
     
     **Features:**
     - 📊 Actual vs Predicted comparison
-    - 🌍 211 countries
+    - 🌍 204 countries
     - 📈 22 input features
     """,
     version="4.0.0",
@@ -141,7 +141,7 @@ async def predict(
 ):
     """
     Predict temperatures and compare with actual values.
-    
+
     Returns predicted vs actual for the specified date range.
     """
     if forecaster is None:
@@ -158,15 +158,13 @@ async def predict(
             min_date = datetime.strptime(date_range["min"], "%Y-%m-%d")
             if start < min_date:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Start date must be >= {date_range['min']}"
+                    status_code=400, detail=f"Start date must be >= {date_range['min']}"
                 )
         if date_range["max"]:
             max_date = datetime.strptime(date_range["max"], "%Y-%m-%d")
             if start > max_date:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Start date must be <= {date_range['max']}"
+                    status_code=400, detail=f"Start date must be <= {date_range['max']}"
                 )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
@@ -192,6 +190,7 @@ async def predict(
 async def get_feature_importance():
     """Get feature importance from trained model."""
     import json
+
     importance_path = Path(__file__).parent.parent / "models" / "feature_importance.json"
     if importance_path.exists():
         with open(importance_path) as f:
@@ -199,8 +198,10 @@ async def get_feature_importance():
         # Sort by importance
         sorted_imp = sorted(importance.items(), key=lambda x: x[1], reverse=True)
         return {
-            "rankings": [{"rank": i + 1, "feature": f, "importance": round(v, 4)} 
-                        for i, (f, v) in enumerate(sorted_imp[:15])],
+            "rankings": [
+                {"rank": i + 1, "feature": f, "importance": round(v, 4)}
+                for i, (f, v) in enumerate(sorted_imp[:15])
+            ],
             "model": "XGBoost",
             "total_features": len(importance),
         }
@@ -227,4 +228,5 @@ async def get_climate_zones():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8002)
