@@ -218,9 +218,23 @@ def run_training(args):
             if val_loss < best_loss:
                 best_loss = val_loss
 
-                # Save Model
+                # Save Model Checkpoint
                 model_path = MODELS_DIR / "v3_climate_transformer.pt"
-                torch.save(model.state_dict(), model_path)
+                checkpoint = {
+                    "model_state_dict": model.state_dict(),
+                    "num_countries": len(country_encoder.classes_),
+                    "dyn_input_dim": len(dyn_avail),
+                    "stat_input_dim": len(stat_avail),
+                    "d_model": args.d_model,
+                    "nhead": 4,  # Hardcoded in HybridClimateTransformer __init__ in train.py, should be args.nhead if customized
+                    "num_layers": args.num_layers,
+                    "dropout": args.dropout,
+                    "seq_len": V3Config.SEQ_LEN,
+                    "pred_len": V3Config.PRED_LEN,
+                    "experiment_name": args.experiment,
+                    "run_name": args.run_name,
+                }
+                torch.save(checkpoint, model_path)
                 mlflow.log_artifact(str(model_path))
 
                 # Save Artifacts
