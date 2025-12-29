@@ -154,7 +154,7 @@ def run_training(args):
 
         train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=args.batch_size)
-        test_loader = DataLoader(test_data, batch_size=args.batch_size)
+        _test_loader = DataLoader(test_data, batch_size=args.batch_size)  # noqa: F841
 
         # 6. Model
         model = HybridClimateTransformer(

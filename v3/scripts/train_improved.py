@@ -121,7 +121,7 @@ def create_sequences(df, feature_cols, target_col):
     all_X, all_y = [], []
 
     print("🔄 Creating sequences...")
-    for country, country_df in df.groupby("country"):
+    for _, country_df in df.groupby("country"):
         country_df = country_df.sort_values("last_updated")
 
         if len(country_df) < SEQ_LEN + PRED_LEN:
@@ -262,7 +262,7 @@ def main():
         scheduler.step(val_loss)
 
         print(
-            f"Epoch {epoch+1}/{EPOCHS} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val MAE: {val_mae:.2f}"
+            f"Epoch {epoch + 1}/{EPOCHS} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val MAE: {val_mae:.2f}"
         )
 
         if val_loss < best_val_loss:
