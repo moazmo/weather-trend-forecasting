@@ -32,7 +32,7 @@ from v3.src.model import HybridClimateTransformer
 
 # --- Data Logic (Matches Notebook) ---
 def load_and_resample(path):
-    print("📊 Loading raw data...")
+    print("📊 Loading raw data...", flush=True)
     df = pd.read_csv(path)
     if "last_updated" in df.columns:
         df["last_updated"] = pd.to_datetime(df["last_updated"], errors="coerce")
@@ -40,7 +40,7 @@ def load_and_resample(path):
     resampled_dfs = []
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 
-    print("🔄 Resampling to Daily Frequency...")
+    print("🔄 Resampling to Daily Frequency...", flush=True)
     for country, group in df.groupby("country"):
         group = group.set_index("last_updated")
         daily = group[numeric_cols].resample("1D").mean()
@@ -55,7 +55,7 @@ def load_and_resample(path):
 def create_hybrid_sequences(df, dyn_cols, stat_cols, country_col, target_col, seq_len, pred_len):
     X_dyn, X_stat, X_country, y = [], [], [], []
 
-    print("🔄 Generating hybrid sequences...")
+    print("🔄 Generating hybrid sequences...", flush=True)
     for _, group in df.groupby("country"):
         group = group.sort_values("last_updated")
         if len(group) < seq_len + pred_len:
@@ -77,7 +77,7 @@ def create_hybrid_sequences(df, dyn_cols, stat_cols, country_col, target_col, se
 
 def run_training(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"🚀 Device: {device}")
+    print(f"🚀 Device: {device}", flush=True)
 
     mlflow.set_experiment(args.experiment)
 

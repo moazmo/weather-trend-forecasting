@@ -67,10 +67,13 @@ jobs:
 
       - name: Run train stage
         if: ${{ github.event.inputs.run_training != 'false' }}
+        timeout-minutes: 30
         env:
           MLFLOW_TRACKING_URI: file:./mlruns
+          PYTHONUNBUFFERED: "1"
         run: |
-          dvc repro train
+          # Use fewer epochs for CI (5 instead of 50)
+          python -m v3.mlflow.train --experiment v3-dvc-pipeline --epochs 5
 
       - name: Run evaluate stage
         if: ${{ github.event.inputs.run_evaluation != 'false' }}
