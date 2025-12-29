@@ -7,6 +7,12 @@ on:
   # Weekly full pipeline (Monday 3 AM UTC)
   schedule:
     - cron: '0 3 * * 1'
+
+  # Run on push to main
+  push:
+    branches:
+      - main
+
   
   # Manual trigger
   workflow_dispatch:
