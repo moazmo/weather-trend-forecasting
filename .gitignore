@@ -62,6 +62,7 @@ env/
 # Data Files (Large files)
 # ================================
 data/raw/*.csv
+!data/raw/GlobalWeatherRepository.csv
 data/raw/*.xlsx
 data/raw/*.json
 data/processed/*.csv
