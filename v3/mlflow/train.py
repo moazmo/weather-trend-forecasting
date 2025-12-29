@@ -44,8 +44,8 @@ def load_and_resample(path):
     for country, group in df.groupby("country"):
         group = group.set_index("last_updated")
         daily = group[numeric_cols].resample("1D").mean()
-        daily["country"] = country
         daily = daily.interpolate(method="time", limit=2).dropna()
+        daily["country"] = country
         daily = daily.reset_index()
         resampled_dfs.append(daily)
 
@@ -212,7 +212,7 @@ def run_training(args):
                 {"train_loss": train_loss, "val_loss": val_loss, "val_mae": val_mae}, step=epoch
             )
 
-            print(f"Epoch {epoch+1}/{args.epochs} | MAE: {val_mae:.2f}")
+            print(f"Epoch {epoch + 1}/{args.epochs} | MAE: {val_mae:.2f}")
             scheduler.step(val_loss)
 
             if val_loss < best_loss:
