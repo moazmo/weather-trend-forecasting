@@ -6,7 +6,6 @@ Historical Backtesting with trained XGBoost model.
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware

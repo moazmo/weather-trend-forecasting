@@ -6,24 +6,23 @@ name: V3 Full Pipeline
 on:
   # Weekly full pipeline (Monday 3 AM UTC)
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: "0 3 * * 1"
 
   # Run on push to main
   push:
     branches:
       - main
 
-  
   # Manual trigger
   workflow_dispatch:
     inputs:
       run_training:
-        description: 'Run training stage'
+        description: "Run training stage"
         required: false
         default: true
         type: boolean
       run_evaluation:
-        description: 'Run evaluation stage'
+        description: "Run evaluation stage"
         required: false
         default: true
         type: boolean
@@ -32,18 +31,18 @@ jobs:
   pipeline:
     name: Run DVC Pipeline
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for DVC
+          fetch-depth: 0 # Full history for DVC
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -77,8 +76,10 @@ jobs:
 
       - name: Run evaluate stage
         if: ${{ github.event.inputs.run_evaluation != 'false' }}
+        timeout-minutes: 10
         run: |
-          dvc repro evaluate
+          # Run evaluation directly (not via dvc repro to avoid re-training with 50 epochs)
+          python v3/scripts/evaluate.py
 
       - name: Show metrics
         run: |
@@ -107,7 +108,7 @@ jobs:
     name: Model Quality Gate
     runs-on: ubuntu-latest
     needs: pipeline
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,7 +122,7 @@ jobs:
         run: |
           python -c "
           import json
-          
+
           try:
               with open('v3/models/evaluation_results.json') as f:
                   metrics = json.load(f)
